@@ -28,6 +28,41 @@ NanoTradeAlgorithm
     └── main.cpp
 ```
 
+## How I Built It
+The development of **NanoTrade Algorithm** followed a structured approach:
+1. **Project Initialization:**
+   - Set up **CMake** for project compilation.
+   - Created a modular project structure with `src/` containing different components.
+
+2. **Data Acquisition:**
+   - Implemented a **Downloader module** using `libcurl` to fetch historical data from Yahoo Finance.
+   - Designed a **CSV parsing system** to clean and structure price data for analysis.
+
+3. **Technical Indicators Implementation:**
+   - Developed **SMA (Simple Moving Average)** to smooth price trends.
+   - Added **EMA (Exponential Moving Average)** to give more weight to recent price changes.
+   - Implemented **Momentum Indicator** to detect market trends.
+   - Built **RSI (Relative Strength Index)** to identify overbought/oversold conditions.
+
+4. **Backtesting System:**
+   - Designed a **Backtester module** that runs different strategies on historical data.
+   - Evaluated **PnL, Max Drawdown, and Sharpe Ratio** for performance assessment.
+   - Implemented **logging and output analysis** for better insights.
+
+5. **Performance Optimization:**
+   - Improved execution speed with **efficient memory management**.
+   - Ensured scalability for **multi-asset backtesting**.
+   - Refactored code for **cleaner, more modular design**.
+
+6. **Testing & Debugging:**
+   - Verified strategy performance with **sample stock data (AAPL, BTC-USD, etc.)**.
+   - Debugged memory leaks and execution bottlenecks.
+   - Benchmarked execution time for further improvements.
+
+7. **Final Deployment & Documentation:**
+   - Packaged the project into a **structured repository** for easy installation.
+   - Created this **README file** to guide users through installation and usage.
+
 ## Build & Run Instructions
 
 ### Prerequisites
@@ -44,7 +79,7 @@ sudo apt-get install libcurl4-openssl-dev
 
 ### Compilation Steps
 ```bash
-git clone https://github.com/AdrianTrill/NanoTrade-Algorithm.git
+git clone https://github.com/Adriantrill/NanoTradeAlgorithm.git
 cd NanoTradeAlgorithm
 mkdir build && cd build
 cmake ..

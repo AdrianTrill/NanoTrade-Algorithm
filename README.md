@@ -1,18 +1,19 @@
 # NanoTrade Algorithm
 
 ## Overview
-This project implements an **algorithmic trading backtester** that **downloads historical market data**, processes technical indicators, and evaluates trading strategies using **C++**.
+**NanoTrade Algorithm** is a **high-performance algorithmic trading backtester** designed for **low-latency strategy execution and quantitative finance research**. It integrates **real-time data acquisition, technical indicators, and advanced backtesting capabilities** to help traders evaluate and optimize their strategies.
 
 ## Features
 ✅ **Live Data Download:** Uses **libcurl** to fetch historical data from Yahoo Finance.  
-✅ **Technical Indicators:** Supports **Simple Moving Average (SMA), Exponential Moving Average (EMA), Momentum, and Relative Strength Index (RSI)** for backtesting.  
+✅ **Technical Indicators:** Supports **Simple Moving Average (SMA), Exponential Moving Average (EMA), Momentum, and Relative Strength Index (RSI)**.  
 ✅ **Performance Metrics:** Computes **PnL (Profit and Loss), Max Drawdown, and Sharpe Ratio**.  
+✅ **Low-Latency Execution:** Designed for **speed and efficiency**, enabling rapid strategy evaluation.  
 ✅ **CMake Build System:** Easily buildable on **Linux/macOS/Windows**.  
 ✅ **CSV Parsing:** Converts downloaded CSV data into structured price data for analysis.  
 
 ## Project Structure
 ```
-AlgoTradingWithDownload
+NanoTradeAlgorithm
 ├── CMakeLists.txt
 ├── README.md
 └── src
@@ -43,8 +44,8 @@ sudo apt-get install libcurl4-openssl-dev
 
 ### Compilation Steps
 ```bash
-git clone https://github.com/YourUsername/AlgoTradingWithDownload.git
-cd AlgoTradingWithDownload
+git clone https://github.com/YourUsername/NanoTradeAlgorithm.git
+cd NanoTradeAlgorithm
 mkdir build && cd build
 cmake ..
 make
@@ -52,7 +53,7 @@ make
 
 ### Running the Trading Simulator
 ```bash
-./AlgoTradingWithDownload
+./NanoTradeAlgorithm
 ```
 
 ### Expected Output

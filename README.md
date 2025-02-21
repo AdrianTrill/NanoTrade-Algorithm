@@ -44,7 +44,7 @@ sudo apt-get install libcurl4-openssl-dev
 
 ### Compilation Steps
 ```bash
-git clone https://github.com/YourUsername/NanoTradeAlgorithm.git
+git clone https://github.com/AdrianTrill/NanoTrade-Algorithm.git
 cd NanoTradeAlgorithm
 mkdir build && cd build
 cmake ..

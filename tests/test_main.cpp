@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cmath>
 #include <functional>
 #include <iomanip>
@@ -181,6 +182,54 @@ void testDeterminism() {
     }
 }
 
+void testFinalStateInvariants() {
+    const auto bars = makeBars({10.0, 11.0, 12.0, 13.0, 14.0});
+    const std::vector<Signal> signals = {
+        Signal::Flat,
+        Signal::Long,
+        Signal::Long,
+        Signal::Long,
+        Signal::Long
+    };
+
+    BacktestConfig config;
+    config.initial_cash = 1000.0;
+    config.order_quantity = 2;
+
+    const auto result = BacktestEngine::run(bars, signals, "invariant_test", config);
+
+    expectTrue(result.equity_curve.size() == bars.size(), "Equity curve should contain one point per input bar.");
+    expectTrue(!result.trades.empty(), "Expected at least one trade.");
+    expectTrue(result.trades.back().reason == "end_of_backtest", "Expected the final trade to be a forced close.");
+    expectTrue(result.equity_curve.back().position_quantity == 0, "Forced close should leave no open position.");
+    expectNear(result.equity_curve.back().market_value, 0.0, 1e-9, "Forced close should clear market value.");
+    expectNear(result.equity_curve.back().cash, result.metrics.final_equity, 1e-9, "Final equity should equal final cash when flat.");
+}
+
+void testInsufficientCashPreventsEntry() {
+    const auto bars = makeBars({100.0, 101.0, 102.0, 103.0});
+    const std::vector<Signal> signals = {
+        Signal::Flat,
+        Signal::Long,
+        Signal::Long,
+        Signal::Long
+    };
+
+    BacktestConfig config;
+    config.initial_cash = 50.0;
+    config.order_quantity = 1;
+
+    const auto result = BacktestEngine::run(bars, signals, "cash_constraint_test", config);
+
+    expectTrue(result.trades.empty(), "Orders that cannot be funded should not be executed.");
+    expectNear(result.metrics.final_equity, config.initial_cash, 1e-9, "Final equity should remain unchanged without trades.");
+
+    for (const auto& point : result.equity_curve) {
+        expectTrue(point.position_quantity == 0, "Portfolio should remain flat when every order is rejected.");
+        expectNear(point.equity, config.initial_cash, 1e-9, "Equity should remain constant when no trades execute.");
+    }
+}
+
 void testInvalidInputHandling() {
     expectThrows(
         [] { MarketDataLoader::loadCsvString("Date,Open,High,Low,Close,Volume\n2024-01-02,10,11,9,bad,1000\n"); },
@@ -224,6 +273,8 @@ int main() {
     runTest("strategy signals", testStrategySignals, failures);
     runTest("trade execution", testBacktestExecution, failures);
     runTest("determinism", testDeterminism, failures);
+    runTest("final state invariants", testFinalStateInvariants, failures);
+    runTest("insufficient cash invariant", testInsufficientCashPreventsEntry, failures);
     runTest("invalid input handling", testInvalidInputHandling, failures);
 
     if (failures > 0) {

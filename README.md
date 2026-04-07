@@ -73,6 +73,36 @@ Module responsibilities:
 - `reporting`: Human-readable summaries for CLI output.
 - `downloader`: Optional Yahoo Finance download path when `libcurl` is available at build time.
 
+### Data flow
+
+```text
+CSV input
+  -> std::vector<Bar>
+  -> Strategy::generateSignals(...)
+  -> std::vector<Signal>
+  -> BacktestEngine::run(...)
+  -> BacktestResult
+  -> formatSummary(...)
+  -> CLI / logs
+```
+
+### API overview
+
+```cpp
+#include "nanotrade/backtest_engine.h"
+#include "nanotrade/market_data.h"
+#include "nanotrade/strategies.h"
+
+auto bars = nanotrade::MarketDataLoader::loadCsvFile("data/sample_ohlcv.csv");
+nanotrade::SmaCrossoverStrategy strategy(3, 5);
+
+nanotrade::BacktestConfig config;
+config.initial_cash = 10000.0;
+config.order_quantity = 10;
+
+nanotrade::BacktestResult result = nanotrade::BacktestEngine::run(bars, strategy, config);
+```
+
 ## How the backtester works
 
 The simulation is intentionally simple and explicit:
@@ -110,6 +140,8 @@ cmake -S . -B build
 cmake --build build
 ```
 
+If `libcurl` is available, the optional Yahoo downloader module is compiled in automatically. The core backtester, CLI demo, and tests do not depend on network access.
+
 ### Option 2: Make
 
 ```bash
@@ -122,6 +154,19 @@ Default demo on the included sample data:
 
 ```bash
 ./build/nanotrade
+```
+
+Sample output:
+
+```text
+Strategy: sma_crossover
+Bars processed: 20
+Initial cash: 10000.00
+Final equity: 9930.00
+Net profit: -70.00
+Total return: -0.70%
+Max drawdown: 0.70%
+Executed trades: 4
 ```
 
 Try a different strategy:
@@ -168,7 +213,15 @@ The test suite covers:
 - strategy signal generation
 - next-bar-open execution behavior
 - deterministic repeatability
+- final state and cash-constraint invariants
 - malformed input and invalid parameter handling
+
+## Continuous integration
+
+GitHub Actions builds and tests the project automatically on every push and pull request on:
+
+- `ubuntu-latest`
+- `macos-latest`
 
 ## Example workflow
 

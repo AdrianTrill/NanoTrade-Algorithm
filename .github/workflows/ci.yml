@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S . -B build -DNANOTRADE_BUILD_TESTS=ON
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Run tests
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Smoke test CLI help
+        run: ./build/nanotrade --help
+
+      - name: Smoke test CLI demo
+        run: ./build/nanotrade --strategy sma --short-window 3 --long-window 5

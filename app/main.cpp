@@ -85,23 +85,33 @@ double parseNonNegativeDouble(const std::string& value, const std::string& flag,
 void printUsage() {
     std::cout
         << "NanoTrade Algorithm\n"
+        << "Deterministic single-instrument backtester\n\n"
         << "Usage:\n"
         << "  nanotrade [options]\n\n"
-        << "Options:\n"
-        << "  --csv <path>               CSV file to backtest (default: data/sample_ohlcv.csv)\n"
+        << "Core options:\n"
+        << "  --csv <path>               Input CSV file (default: data/sample_ohlcv.csv)\n"
         << "  --strategy <name>          sma | ema | momentum | rsi (default: sma)\n"
+        << "  --list-strategies          Print supported strategies and exit\n"
+        << "  --help                     Show this help message and exit\n\n"
+        << "Strategy parameters:\n"
         << "  --short-window <n>         Short window for SMA/EMA crossover\n"
         << "  --long-window <n>          Long window for SMA/EMA crossover\n"
         << "  --lookback <n>             Lookback for momentum strategy\n"
         << "  --rsi-period <n>           RSI period\n"
         << "  --rsi-entry <value>        RSI entry threshold\n"
-        << "  --rsi-exit <value>         RSI exit threshold\n"
+        << "  --rsi-exit <value>         RSI exit threshold\n\n"
+        << "Execution parameters:\n"
         << "  --initial-cash <value>     Starting cash balance\n"
         << "  --quantity <n>             Shares per trade\n"
         << "  --commission <value>       Fixed commission per order\n"
-        << "  --slippage-bps <value>     Slippage applied to fills in basis points\n"
-        << "  --list-strategies          Print supported strategies\n"
-        << "  --help                     Show this help message\n";
+        << "  --slippage-bps <value>     Slippage applied to fills in basis points\n\n"
+        << "Simulation model:\n"
+        << "  Signals are evaluated on the close and filled on the next bar open.\n"
+        << "  Positions are long-only with a fixed quantity per order.\n\n"
+        << "Examples:\n"
+        << "  nanotrade\n"
+        << "  nanotrade --strategy ema --short-window 3 --long-window 6\n"
+        << "  nanotrade --strategy momentum --lookback 3 --commission 1.00 --slippage-bps 5\n";
 }
 
 void printStrategies() {
@@ -119,7 +129,7 @@ CliOptions parseArgs(int argc, char** argv) {
     for (int i = 1; i < argc; ++i) {
         const std::string arg = argv[i];
 
-        if (arg == "--help") {
+        if (arg == "--help" || arg == "-h") {
             options.show_help = true;
         } else if (arg == "--list-strategies") {
             options.list_strategies = true;
@@ -206,6 +216,7 @@ int main(int argc, char** argv) {
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {
         std::cerr << "Error: " << error.what() << '\n';
+        std::cerr << "Run 'nanotrade --help' for usage.\n";
         return EXIT_FAILURE;
     }
 }

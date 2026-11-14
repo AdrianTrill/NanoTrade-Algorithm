@@ -1267,7 +1267,7 @@ input[type="range"]:disabled {
   border: 1px solid color-mix(in srgb, var(--down) 30%, transparent);
   border-radius: var(--radius);
   background: var(--down-soft);
-  color: var(--down);
+  color: var(--pill-down);  /* the red that's dark enough to read on its own tint, as in the pills */
   font: 500 13px/1.45 var(--font-ui);
 }
 

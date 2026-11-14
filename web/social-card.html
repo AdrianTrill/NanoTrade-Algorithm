@@ -1,0 +1,115 @@
+<!doctype html>
+<!-- The link-preview card, also the README's header: 1200 by 630. web/capture.mjs fills in the {{PLACEHOLDERS}} with
+     a figure and timings from the lab, and screenshots it into web/social.png. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  :root {
+    --paper: #f4efe5;
+    --rule: #d9cfbe;
+    --ink: #1c1a17;
+    --ink-2: #4a443c;
+    --muted: #776f62;
+    --accent: #c2410c;
+    --serif: "Iowan Old Style", "Charter", "Bitstream Charter", Cambria, Georgia, serif;
+    --ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, "Helvetica Neue", Arial, sans-serif;
+    --mono: "SF Mono", SFMono-Regular, ui-monospace, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  body {
+    display: flex;
+    flex-direction: column;
+    padding: 42px 56px 36px;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+  }
+  header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid var(--ink);
+  }
+  header svg { width: 40px; height: 40px; }
+  .name { font-size: 30px; font-weight: 600; letter-spacing: -0.01em; }
+  .kicker {
+    margin-left: auto;
+    color: var(--accent);
+    font: 600 13px/1 var(--ui);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  main {
+    display: grid;
+    flex: 1;
+    grid-template-columns: 1fr 548px;
+    gap: 46px;
+    padding-top: 30px;
+  }
+  h1 { font-size: 56px; font-weight: 600; line-height: 1.03; letter-spacing: -0.022em; }
+  h1 em { color: var(--accent); }
+  .deck { margin-top: 20px; color: var(--ink-2); font-size: 22px; line-height: 1.4; }
+  .facts {
+    display: grid;
+    grid-template-columns: repeat(3, auto);
+    justify-content: start;
+    gap: 30px;
+    margin-top: 28px;
+    padding-top: 16px;
+    border-top: 1px solid var(--rule);
+    color: var(--muted);
+    font: 500 14px/1.3 var(--ui);
+  }
+  .facts b { display: block; margin-bottom: 5px; color: var(--ink); font: 600 25px/1.1 var(--mono); letter-spacing: -0.02em; }
+  figure { padding-top: 10px; border-top: 1px solid var(--rule); }
+  .label {
+    margin-bottom: 10px;
+    color: var(--muted);
+    font: 600 12px/1 var(--ui);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  figure img {
+    display: block;
+    width: 548px;
+    height: 318px;
+    object-fit: contain;
+    object-position: center;
+  }
+  figcaption { margin-top: 11px; color: var(--ink-2); font-size: 16.5px; line-height: 1.38; }
+  figcaption b { color: var(--ink); font-family: var(--mono); font-size: 15px; font-weight: 600; }
+  footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: auto;
+    padding-top: 13px;
+    border-top: 1px solid var(--rule);
+    color: var(--muted);
+    font: 500 15px/1 var(--mono);
+  }
+</style>
+</head>
+<body>
+  <header>{{LOGO}}<span class="name">NanoTrade</span><span class="kicker">A backtesting lab</span></header>
+  <main>
+    <div>
+      <h1>Backtest a strategy, then ask whether it was <em>luck</em>.</h1>
+      <p class="deck">A C++20 engine with its own rule language, running in your browser in WebAssembly on half a century of daily bars.</p>
+      <div class="facts">
+        <span><b>{{BARS}}</b>daily bars</span>
+        <span><b>{{BACKTEST}}</b>a backtest</span>
+        <span><b>{{SWEEP}}</b>a 300-pair search</span>
+      </div>
+    </div>
+    <figure>
+      <div class="label">Figure 1 · The parameter map</div>
+      <img src="{{FIGURE}}" alt="">
+      <figcaption>{{CAPTION}}</figcaption>
+    </figure>
+  </main>
+  <footer><span>adriantrill.github.io/NanoTrade-Algorithm</span><span>C++20 · WebAssembly · JSON API</span></footer>
+</body>
+</html>

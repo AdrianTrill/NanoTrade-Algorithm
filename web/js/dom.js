@@ -65,3 +65,24 @@ export function debounce(fn, delay) {
     timer = setTimeout(() => fn(...args), delay);
   };
 }
+
+// A tablist as the keyboard expects one: only the selected tab is in the tab order, and the arrow keys, Home, and
+// End move between the tabs, choosing each as they go.
+export function rovingTabs(list) {
+  const tabs = () => [...list.querySelectorAll('[role="tab"]')];
+  const sync = () => {
+    for (const tab of tabs()) tab.tabIndex = tab.getAttribute('aria-selected') === 'true' ? 0 : -1;
+  };
+  list.addEventListener('keydown', (event) => {
+    const all = tabs();
+    const index = all.indexOf(document.activeElement);
+    const next = { ArrowRight: index + 1, ArrowLeft: index - 1, Home: 0, End: all.length - 1 }[event.key];
+    if (index < 0 || next === undefined || event.altKey || event.ctrlKey || event.metaKey) return;
+    event.preventDefault();
+    const tab = all[(next + all.length) % all.length];
+    tab.focus();
+    tab.click();
+  });
+  new MutationObserver(sync).observe(list, { subtree: true, attributeFilter: ['aria-selected'] });
+  sync();
+}

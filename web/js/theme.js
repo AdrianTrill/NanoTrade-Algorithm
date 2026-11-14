@@ -1,5 +1,5 @@
-// The day and night editions. The choice is remembered (index.html applies it before the page first paints), and
-// the canvases re-read their colors when it changes.
+// The day and night editions. Until one is chosen the page follows the system's; a choice is remembered, and
+// index.html applies it before the page first paints. The canvases re-read their colors when it changes.
 import { $ } from './dom.js';
 import { readPalette } from './palette.js';
 
@@ -7,6 +7,16 @@ const KEY = 'nanotrade-theme';
 const PAGE_COLOR = { light: '#f4efe5', dark: '#14130f' };
 
 let redrawCanvases = () => {};
+const system = matchMedia('(prefers-color-scheme: dark)');
+
+function chosen() {
+  try {
+    const value = localStorage.getItem(KEY);
+    return value === 'light' || value === 'dark' ? value : null;
+  } catch {
+    return null;
+  }
+}
 
 export const currentTheme = () => (document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light');
 
@@ -44,4 +54,9 @@ export function startTheme(redraw) {
   redrawCanvases = redraw;
   apply(currentTheme());
   $('#theme').addEventListener('click', toggleTheme);
+  system.addEventListener('change', () => {
+    if (chosen()) return;
+    apply(system.matches ? 'dark' : 'light');
+    redrawCanvases();
+  });
 }

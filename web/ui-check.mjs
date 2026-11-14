@@ -133,6 +133,10 @@ try {
 
   // The default backtest.
   let page = await open();
+  await page.keyboard.press('Tab');
+  check(await page.evaluate(() => document.activeElement.classList.contains('skip-link')
+    && document.activeElement.getBoundingClientRect().top >= 0), 'the first Tab offers a skip to the report');
+  await page.evaluate(() => document.activeElement.blur());
   check(!(await page.evaluate(() => document.body.dataset.error)), 'the engine starts');
   const runtime = await text(page, '#runtime-label');
   check(native ? /native/.test(runtime) : /WebAssembly/.test(runtime), `it runs ${native ? 'on the native server' : 'in WebAssembly'}: "${runtime}"`);
@@ -216,6 +220,12 @@ try {
   // Keys, editions, the reference, and a file.
   await page.keyboard.press('1');
   check((await page.$eval('.view[aria-selected="true"]', (tab) => tab.dataset.view)) === 'backtest', '1 returns to the backtest');
+  await page.focus('#tab-backtest');
+  await page.keyboard.press('ArrowRight');
+  check(await page.evaluate(() => document.activeElement.id === 'tab-optimize' && document.activeElement.getAttribute('aria-selected') === 'true'
+    && document.querySelector('#tab-backtest').tabIndex === -1), 'the arrow keys move between the views');
+  await page.keyboard.press('ArrowLeft');
+  await page.evaluate(() => document.activeElement.blur());
   await page.keyboard.press('t');
   await sleep(400);
   check((await page.evaluate(() => document.documentElement.dataset.theme)) === 'dark', 'T switches to the night edition');

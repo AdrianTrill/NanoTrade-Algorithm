@@ -14,15 +14,21 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
   <script>
-    // The remembered edition, applied before the first paint.
-    try {
-      const theme = localStorage.getItem('nanotrade-theme');
-      if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
-    } catch {}
+    // The edition, applied before the first paint: the one chosen here before, or else the system's.
+    {
+      let stored = null;
+      try {
+        stored = localStorage.getItem('nanotrade-theme');
+      } catch {}
+      const theme = stored === 'light' || stored === 'dark' ? stored : matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.dataset.theme = theme;
+      document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#14130f' : '#f4efe5';
+    }
   </script>
   <script type="module" src="js/app.js"></script>
 </head>
 <body class="booting">
+  <a class="skip-link" href="#main">Skip to the report</a>
   <svg class="sprite" aria-hidden="true">
     <symbol id="i-mark" viewBox="0 0 32 32">
       <rect width="32" height="32" fill="currentColor"/>
@@ -63,10 +69,10 @@
           </nav>
         </div>
         <nav class="sections" role="tablist" aria-label="Views">
-          <button class="view" role="tab" data-view="backtest" aria-selected="true" title="Backtest (1)"><span class="num">01</span>Backtest</button>
-          <button class="view" role="tab" data-view="optimize" aria-selected="false" title="Optimize (2)"><span class="num">02</span>Optimize</button>
-          <button class="view" role="tab" data-view="walkforward" aria-selected="false" title="Walk-forward (3)"><span class="num">03</span>Walk-forward</button>
-          <button class="view" role="tab" data-view="montecarlo" aria-selected="false" title="Monte Carlo (4)"><span class="num">04</span>Monte Carlo</button>
+          <button class="view" role="tab" id="tab-backtest" aria-controls="panel-backtest" data-view="backtest" aria-selected="true" title="Backtest (1)"><span class="num">01</span>Backtest</button>
+          <button class="view" role="tab" id="tab-optimize" aria-controls="panel-optimize" data-view="optimize" aria-selected="false" title="Optimize (2)"><span class="num">02</span>Optimize</button>
+          <button class="view" role="tab" id="tab-walkforward" aria-controls="panel-walkforward" data-view="walkforward" aria-selected="false" title="Walk-forward (3)"><span class="num">03</span>Walk-forward</button>
+          <button class="view" role="tab" id="tab-montecarlo" aria-controls="panel-montecarlo" data-view="montecarlo" aria-selected="false" title="Monte Carlo (4)"><span class="num">04</span>Monte Carlo</button>
         </nav>
       </div>
     </header>
@@ -138,7 +144,7 @@
       </aside>
 
       <main class="report" id="main">
-        <section class="view-panel" data-panel="backtest">
+        <section class="view-panel" id="panel-backtest" role="tabpanel" aria-labelledby="tab-backtest" data-panel="backtest">
           <header class="lede">
             <p class="kicker" id="kicker">Backtest</p>
             <h1 id="headline">Starting the engine</h1>
@@ -166,21 +172,21 @@
             <p class="source">Scroll or pinch to zoom, drag to pan, double-click for the whole range. Orders are decided at a bar's close and filled at the next bar's open. <span id="chart-source"></span></p>
           </figure>
           <section class="exhibit details" aria-label="Tables">
-            <div class="tabs" role="tablist">
-              <button class="tab" role="tab" data-detail="trades" aria-selected="true">Trades<span class="count" id="trade-count"></span></button>
-              <button class="tab" role="tab" data-detail="monthly" aria-selected="false">Monthly returns</button>
-              <button class="tab" role="tab" data-detail="metrics" aria-selected="false">Every metric</button>
-              <button class="tab" role="tab" data-detail="drawdowns" aria-selected="false">Drawdowns</button>
+            <div class="tabs" role="tablist" aria-label="Tables">
+              <button class="tab" role="tab" id="tab-trades" aria-controls="detail-trades" data-detail="trades" aria-selected="true">Trades<span class="count" id="trade-count"></span></button>
+              <button class="tab" role="tab" id="tab-monthly" aria-controls="detail-monthly" data-detail="monthly" aria-selected="false">Monthly returns</button>
+              <button class="tab" role="tab" id="tab-metrics" aria-controls="detail-metrics" data-detail="metrics" aria-selected="false">Every metric</button>
+              <button class="tab" role="tab" id="tab-drawdowns" aria-controls="detail-drawdowns" data-detail="drawdowns" aria-selected="false">Drawdowns</button>
               <button class="text-button small push" id="export" title="Download the trades as CSV"><svg class="icon"><use href="#i-download"/></svg><span>CSV</span></button>
             </div>
-            <div class="detail" data-detail-panel="trades"><div class="table-scroll" id="trades"></div></div>
-            <div class="detail" data-detail-panel="monthly" hidden><div class="table-scroll" id="monthly"></div></div>
-            <div class="detail" data-detail-panel="metrics" hidden><div class="table-scroll" id="metrics"></div></div>
-            <div class="detail" data-detail-panel="drawdowns" hidden><div class="table-scroll" id="drawdowns"></div></div>
+            <div class="detail" id="detail-trades" role="tabpanel" aria-labelledby="tab-trades" data-detail-panel="trades"><div class="table-scroll" id="trades"></div></div>
+            <div class="detail" id="detail-monthly" role="tabpanel" aria-labelledby="tab-monthly" data-detail-panel="monthly" hidden><div class="table-scroll" id="monthly"></div></div>
+            <div class="detail" id="detail-metrics" role="tabpanel" aria-labelledby="tab-metrics" data-detail-panel="metrics" hidden><div class="table-scroll" id="metrics"></div></div>
+            <div class="detail" id="detail-drawdowns" role="tabpanel" aria-labelledby="tab-drawdowns" data-detail-panel="drawdowns" hidden><div class="table-scroll" id="drawdowns"></div></div>
           </section>
         </section>
 
-        <section class="view-panel" data-panel="optimize" hidden>
+        <section class="view-panel" id="panel-optimize" role="tabpanel" aria-labelledby="tab-optimize" data-panel="optimize" hidden>
           <header class="lede">
             <p class="kicker">Optimize</p>
             <h1>Which parameters work, and is the best one luck?</h1>
@@ -220,7 +226,7 @@
           </div>
         </section>
 
-        <section class="view-panel" data-panel="walkforward" hidden>
+        <section class="view-panel" id="panel-walkforward" role="tabpanel" aria-labelledby="tab-walkforward" data-panel="walkforward" hidden>
           <header class="lede">
             <p class="kicker">Walk-forward</p>
             <h1>Choose with the past, trade the future</h1>
@@ -245,7 +251,7 @@
           </section>
         </section>
 
-        <section class="view-panel" data-panel="montecarlo" hidden>
+        <section class="view-panel" id="panel-montecarlo" role="tabpanel" aria-labelledby="tab-montecarlo" data-panel="montecarlo" hidden>
           <header class="lede">
             <p class="kicker">Monte Carlo</p>
             <h1>What luck could have done</h1>

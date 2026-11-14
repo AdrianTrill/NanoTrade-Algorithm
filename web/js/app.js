@@ -1,7 +1,7 @@
 // NanoTrade Lab: wires the settings to the engine and the views.
 import { BacktestView } from './backtest.js';
 import { Controls } from './controls.js';
-import { $, $$, element } from './dom.js';
+import { $, $$, element, rovingTabs } from './dom.js';
 import { connect, Superseded } from './engine.js';
 import { highlight } from './editor.js';
 import * as format from './format.js';
@@ -69,6 +69,7 @@ class App {
     this.drawer = new Drawer();
 
     for (const tab of $$('.view')) tab.addEventListener('click', () => this.showView(tab.dataset.view));
+    for (const list of $$('[role="tablist"]')) rovingTabs(list);
     $('#share').addEventListener('click', () => this.share());
     $('#help').addEventListener('click', () => $('#shortcuts').showModal());
     $('#status-help').addEventListener('click', () => $('#shortcuts').showModal());

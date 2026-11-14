@@ -12,16 +12,18 @@ const phone = matchMedia('(max-width: 640px)');
 // `stuck`, which slides the mark into the row of views, as a dashboard's does.
 export function trackMasthead() {
   const masthead = $('.masthead');
+  const root = document.documentElement;
+  let lift = 0;  // how far the masthead rises before it sticks: its top row's height, or nothing on a narrow screen
+  const stick = () => root.classList.toggle('stuck', lift > 0 && window.scrollY >= lift);
   const update = () => {
-    const top = Math.min(0, parseFloat(getComputedStyle(masthead).top) || 0);
-    document.documentElement.style.setProperty('--masthead-height', `${masthead.offsetHeight + top}px`);
+    lift = -Math.min(0, parseFloat(getComputedStyle(masthead).top) || 0);
+    root.style.setProperty('--masthead-height', `${masthead.offsetHeight - lift}px`);
+    stick();
   };
   new ResizeObserver(update).observe(masthead);
   narrow.addEventListener('change', update);
+  addEventListener('scroll', stick, { passive: true });
   update();
-  // The root shrinks by a pixel at the top, since a row that has just left touches the viewport's edge.
-  new IntersectionObserver(([entry]) => document.documentElement.classList.toggle('stuck', !entry.isIntersecting),
-    { rootMargin: '-1px 0px 0px 0px' }).observe($('.masthead-row'));
 }
 
 export class Drawer {

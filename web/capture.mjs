@@ -3,8 +3,8 @@
 //   emcmake cmake -S . -B build-wasm && cmake --build build-wasm     (the site, in build-wasm/site)
 //   node web/capture.mjs build-wasm/site
 //
-// Writes docs/assets/{backtest,rules,optimize,walkforward,montecarlo,phone,phone-settings}.png, docs/assets/demo.gif, and
-// web/social.png
+// Writes docs/assets/{backtest,rules,optimize,walkforward,montecarlo,portfolio,phone,phone-settings}.png,
+// docs/assets/demo.gif, and web/social.png
 // (rebuild the site to publish it). The page runs its engine in WebAssembly, as on GitHub Pages. Needs Chrome, and
 // ffmpeg for the GIF.
 import { execFileSync } from 'node:child_process';
@@ -131,6 +131,13 @@ await page.screenshot({ path: join(assets, 'montecarlo.png') });
 await page.browserContext().close();
 console.log('montecarlo.png');
 
+// A portfolio, as the lab first offers it: five stocks, equally weighted and rebalanced monthly.
+page = await open('?view=portfolio', { height: 1400 });
+await research(page, 'portfolio');
+await page.screenshot({ path: join(assets, 'portfolio.png') });
+await page.browserContext().close();
+console.log('portfolio.png');
+
 // A phone: the result first, then the settings in a sheet over it, with the headline figures still in view.
 page = await open('?d=AAPL&from=2003-01-01&p=fast:20,slow:100&cb=1&sb=2', { width: 390, height: 844, scale: 2, mobile: true });
 await page.screenshot({ path: join(assets, 'phone.png') });
@@ -171,7 +178,7 @@ await cardPage.close();
 console.log(`social.png (backtest ${backtestMs}, search ${sweepTime} s, DSR ${dsr}, PBO ${pbo})`);
 
 // The demo: a backtest, another market found in the command menu, a rule written by hand, the strategy switched back
-// from its breadcrumb, a search and its verdict, a walk-forward test, resampling, and the dark theme.
+// from its breadcrumb, a search and its verdict, a walk-forward test, resampling, a portfolio, and the dark theme.
 const video = join(tmpdir(), 'nanotrade-demo.webm');
 page = await open('?d=AAPL&cb=1&sb=2', { width: 1440, height: 900, scale: 1 });
 const recorder = await page.screencast({ path: video });
@@ -223,6 +230,12 @@ await press(page, '4');
 await after(page, 'monte', before);
 await scrollTo(page, '#monte-kpis');
 await wait(1800);
+await scrollTo(page, null);
+before = await counter(page, 'portfolio');
+await press(page, '5');
+await after(page, 'portfolio', before);
+await scrollTo(page, '#port-kpis');
+await wait(2400);
 await press(page, 't');
 await wait(1600);
 await scrollTo(page, null);

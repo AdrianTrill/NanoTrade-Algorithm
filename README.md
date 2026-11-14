@@ -18,9 +18,9 @@ NanoTrade is a backtesting engine for trading strategies, in C++20 with no depen
 > NanoTrade is for research and learning, not investment advice. A backtest describes the past, and the lab is built to show how little of it a search can carry forward.
 
 <p align="center">
-  <a href="https://adriantrill.github.io/NanoTrade-Algorithm/"><img src="docs/assets/demo.gif" width="857" alt="The live lab: a backtest of the SMA crossover moves to Boeing from the command menu, a rule typed by hand reruns at once, the strategy's breadcrumb switches back to the SMA crossover, then a parameter search draws its map and its verdict on overfitting, a walk-forward test chains its out-of-sample years, Monte Carlo resampling draws its bands, and the page switches to the dark theme"></a>
+  <a href="https://adriantrill.github.io/NanoTrade-Algorithm/"><img src="docs/assets/demo.gif" width="857" alt="The live lab: a backtest of the SMA crossover moves to Boeing from the command menu, a rule typed by hand reruns at once, the strategy's breadcrumb switches back to the SMA crossover, then a parameter search draws its map and its verdict on overfitting, a walk-forward test chains its out-of-sample years, Monte Carlo resampling draws its bands, a portfolio of five stocks stacks each one's share of it in bands, and the page switches to the dark theme"></a>
 </p>
-<p align="center"><em>The <a href="https://adriantrill.github.io/NanoTrade-Algorithm/">live lab</a> on GitHub Pages: another market from the command menu, a rule typed by hand, a parameter search and its verdict, a walk-forward test, resampling, and the dark theme.</em></p>
+<p align="center"><em>The <a href="https://adriantrill.github.io/NanoTrade-Algorithm/">live lab</a> on GitHub Pages: another market from the command menu, a rule typed by hand, a parameter search and its verdict, a walk-forward test, resampling, a portfolio, and the dark theme.</em></p>
 
 ## What's inside
 
@@ -52,7 +52,7 @@ cmake --build build --parallel
 ## The lab
 
 <p align="center">
-  <img src="docs/assets/backtest.png" width="857" alt="The backtest view in the light theme: the breadcrumbs NanoTrade, AAPL · Apple, and SMA crossover above the views; the settings in a card beside the report; the SMA crossover on Apple from 2003 to 2013, headlined with a sentence that sets its result against buying and holding; six figures in one card with bars comparing them; and the chart card: the price with both moving averages and every entry and exit, the position held, the strategy's equity against buying and holding, and both drawdowns">
+  <img src="docs/assets/backtest.png" width="857" alt="The backtest view in the light theme: the breadcrumbs NanoTrade, AAPL · Apple, and SMA crossover above the views; the settings in a card beside the report; the SMA crossover on Apple from 2003 to 2013, headlined with a sentence that sets its result against buying and holding, and a button to pin it for comparison; six figures in one card with bars comparing them; and the chart card: the price with both moving averages and every entry and exit, the position held, the strategy's equity against buying and holding, and both drawdowns">
 </p>
 
 The lab is laid out like a Vercel dashboard and set in Vercel's typefaces, Geist and Geist Mono: breadcrumbs that switch the market and the strategy, the views as tabs that stay in place as the page scrolls, the settings in a card beside the report, and the figures, charts, and tables in cards of their own. The interface is black and white, in light or dark, and color is kept for the data. Each run gets a headline, a sentence that sets the result against buying and holding, and a line with the parameters and the time the engine took; the charts are drawn on canvas in the page's own colors.
@@ -69,6 +69,10 @@ The lab is laid out like a Vercel dashboard and set in Vercel's typefaces, Geist
 
 <p align="center">
   <img src="docs/assets/optimize.png" width="857" alt="The optimize view in the dark theme: a search of 300 pairs of SMA windows on General Electric from 1962 to 2013, its settings in a form card with the search's time and its button in the card's foot, then a parameter map of Sharpe ratios beside the card Is the winner real?, with a deflated Sharpe ratio above 99%, a probability of backtest overfitting near 80%, the distribution of the winner's out-of-sample rank, and the verdict that the strategy family beats luck but its best parameters don't persist">
+</p>
+
+<p align="center">
+  <img src="docs/assets/portfolio.png" width="857" alt="The portfolio view in the light theme: the SMA crossover on Apple, Boeing, Caterpillar, Ford, and General Electric since 1990, equally weighted and rebalanced monthly; a form card of market chips, weights, and rebalancing; six figures against the same markets held, with a lower annual return at much the same Sharpe ratio, 0.66 against 0.68, little more than half their volatility and worst drawdown, an average correlation of 0.19, and 287 rebalances that cost 0.71% of the capital; and a chart of the equity against the markets held on a log scale, each market's share of the portfolio stacked in bands, and both drawdowns">
 </p>
 
 <p align="center">

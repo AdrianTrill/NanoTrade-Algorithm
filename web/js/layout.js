@@ -27,7 +27,14 @@ export class Drawer {
     });
     narrow.addEventListener('change', () => {
       if (!narrow.matches) this.close({ restoreFocus: false });
+      this.hideWhenClosed();
     });
+    this.hideWhenClosed();
+  }
+
+  // A closed drawer is out of sight, and out of reach of the keyboard and assistive technology too.
+  hideWhenClosed() {
+    $('#spec').inert = narrow.matches && !this.isOpen;
   }
 
   get isOpen() {
@@ -38,6 +45,7 @@ export class Drawer {
   open({ focus = true } = {}) {
     if (!narrow.matches || this.isOpen) return;
     document.documentElement.classList.add('spec-open');
+    this.hideWhenClosed();
     this.toggle.setAttribute('aria-expanded', 'true');
     this.scrim.hidden = false;
     for (const node of $$('.masthead, #main, .colophon')) node.inert = true;
@@ -50,6 +58,7 @@ export class Drawer {
     if (!this.isOpen) return;
     const hadFocus = $('#spec').contains(document.activeElement);
     document.documentElement.classList.remove('spec-open');
+    this.hideWhenClosed();
     this.toggle.setAttribute('aria-expanded', 'false');
     this.scrim.hidden = true;
     for (const node of $$('.masthead, #main, .colophon')) node.inert = false;

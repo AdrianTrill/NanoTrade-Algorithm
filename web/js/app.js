@@ -33,8 +33,9 @@ function setEngineStatus(text, kind) {
 }
 
 class App {
-  constructor(engine, catalog, manifest) {
+  constructor(engine, catalog, manifest, drawer) {
     this.engine = engine;
+    this.drawer = drawer;
     this.catalog = catalog;
     this.manifest = manifest;
     this.bars = null;
@@ -66,7 +67,6 @@ class App {
     this.walk = new WalkForwardView({ engine: this.engine, catalog: this.catalog, context, onError });
     this.monte = new MonteCarloView({ engine: this.engine, context, onError });
     startTheme(() => this.redraw());
-    this.drawer = new Drawer();
 
     for (const tab of $$('.view')) tab.addEventListener('click', () => this.showView(tab.dataset.view));
     for (const list of $$('[role="tablist"]')) rovingTabs(list);
@@ -375,6 +375,7 @@ class App {
 
 async function main() {
   trackMasthead();
+  const drawer = new Drawer();
   readPalette();
   fromQuery(location.search);
   if (runtime === 'native') $('#deck').textContent = 'Connecting to the native engine that serves this page.';
@@ -389,7 +390,7 @@ async function main() {
     setEngineStatus(engine.runtime === 'wasm' ? `NanoTrade ${engine.version}, compiled to WebAssembly` : `NanoTrade ${engine.version}, native`, 'ready');
     const catalog = await engine.request({ command: 'catalog' });
     if (!catalog.ok) throw new Error(catalog.error.message);
-    const app = new App(engine, catalog.result, manifest);
+    const app = new App(engine, catalog.result, manifest, drawer);
     window.nanotrade = app;  // for the page's checks
     app.start();
   } catch (error) {

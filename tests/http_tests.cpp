@@ -248,6 +248,7 @@ const std::vector<SiteFile>& site_files() {
         {"prices.csv", "date,close\n2024-01-02,185.64\n", "text/csv; charset=utf-8"},
         {"engine.wasm", "\0asm\x01\0\0\0"s, "application/wasm"},
         {"logo.svg", "<svg xmlns=\"http://www.w3.org/2000/svg\"/>\n", "image/svg+xml"},
+        {"geist.woff2", "wOF2\0\x01\0\0"s, "font/woff2"},
         {"blob.xyz", every_byte(), "application/octet-stream"},
         {"LOUD.CSS", "p { color: red; }\n", "text/css; charset=utf-8"},
     };

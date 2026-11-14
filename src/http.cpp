@@ -413,6 +413,7 @@ std::optional<Response> serve_static(const std::filesystem::path& root, std::str
         {".webp", "image/webp"},
         {".ico", "image/x-icon"},
         {".wasm", "application/wasm"},
+        {".woff2", "font/woff2"},
         {".txt", "text/plain; charset=utf-8"},
         {".md", "text/markdown; charset=utf-8"},
         {".webmanifest", "application/manifest+json"},

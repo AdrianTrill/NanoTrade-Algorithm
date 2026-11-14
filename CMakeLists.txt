@@ -47,6 +47,7 @@ add_library(nanotrade_core
     src/json.cpp
     src/math.cpp
     src/metrics.cpp
+    src/research.cpp
     src/series.cpp
     src/strategy.cpp
     src/synthetic.cpp

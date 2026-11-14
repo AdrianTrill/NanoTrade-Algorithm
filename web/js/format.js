@@ -26,6 +26,20 @@ export function percent(value, digits = 1, signed = false) {
   return signed && value > 0 ? `+${text}` : text.replace('-', '−');
 }
 
+// A difference of two fractions in percentage points: +2.1 pts, −18.2 pts.
+export function points(value, digits = 1) {
+  if (!finite(value)) return nothing;
+  const settled = settle(value * 100, digits);
+  return `${settled > 0 ? '+' : settled < 0 ? '−' : '±'}${grouped(Math.abs(settled), digits)} pts`;
+}
+
+// A signed difference: +0.12, −3.
+export function change(value, digits = 2) {
+  if (!finite(value)) return nothing;
+  const settled = settle(value, digits);
+  return `${settled > 0 ? '+' : settled < 0 ? '−' : '±'}${grouped(Math.abs(settled), digits)}`;
+}
+
 export function ratio(value, digits = 2) {
   if (!finite(value)) return nothing;
   return settle(value, digits).toFixed(digits).replace('-', '−');

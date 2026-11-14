@@ -166,6 +166,22 @@ try {
   await slide(page, 'Fast SMA', 10);
   await nextBacktest(page, before);
   check((await text(page, '#dateline')).includes('fast 10'), 'moving a slider reruns the backtest with the new parameter');
+
+  // A pinned backtest, compared with the next ones.
+  await page.evaluate(() => document.activeElement?.blur());
+  await page.keyboard.press('p');
+  before = await backtests(page);
+  await slide(page, 'Fast SMA', 40);
+  await nextBacktest(page, before);
+  check(await page.evaluate(() => !document.querySelector('#pinned').hidden && document.querySelectorAll('#kpis .delta').length === 6
+    && window.nanotrade.backtest.chart.data.panes.find((pane) => pane.id === 'equity').series.length === 3),
+  'a pinned backtest is compared with the next: each figure\'s change, and its equity on the chart');
+  await page.click('.tab[data-detail="metrics"]');
+  check((await text(page, '#metrics thead')).includes('Pinned'), 'and every metric beside its own');
+  await page.click('.tab[data-detail="trades"]');
+  await page.evaluate(() => document.activeElement?.blur());
+  await page.keyboard.press('p');
+  check(await page.evaluate(() => document.querySelector('#pinned').hidden && !document.querySelector('#kpis .delta')), 'P unpins it');
   before = await backtests(page);
   await page.select('#dataset', 'GE');
   await nextBacktest(page, before);

@@ -37,6 +37,8 @@ export class BacktestView {
     this.log = true;
     this.detail = 'trades';
     this.built = new Set();  // the tables built for this result
+    this.pinned = null;  // a backtest kept to compare the next ones with
+    $('#pin').addEventListener('click', () => this.togglePin());
     $('#candles').addEventListener('click', () => this.toggleCandles());
     $('#log').addEventListener('click', () => this.toggleLog());
     $('#zoom-reset').addEventListener('click', () => this.chart.reset());
@@ -74,7 +76,7 @@ export class BacktestView {
     } else if (this.detail === 'monthly') {
       monthlyTable($('#monthly'), result.calendar);
     } else if (this.detail === 'metrics') {
-      metricsTable($('#metrics'), result.metrics, result.benchmark);
+      metricsTable($('#metrics'), result.metrics, result.benchmark, this.pinned?.metrics);
     } else if (this.detail === 'drawdowns') {
       drawdownsTable($('#drawdowns'), result.drawdowns, (d) => {
         const times = result.series.time;
@@ -126,9 +128,11 @@ export class BacktestView {
       open: t.open,
     }));
     this.renderLede();
+    this.renderPinned();
     this.renderFigures();
     this.renderLegend();
     this.renderChart(sameData);
+    $('#pin').disabled = false;
     $('#trade-count').textContent = format.integer(result.trades.length);
     this.built = new Set();
     await yieldToBrowser();
@@ -176,19 +180,94 @@ export class BacktestView {
   renderFigures() {
     const m = this.result.metrics;
     const b = this.result.benchmark;
+    const p = this.pinned?.metrics;
     const sign = (v) => (v < 0 ? 'down' : '');
     const holding = (text) => versus('Buy and hold', text);
+    // How each figure moved from the pinned run's: green where it's better, red where worse, and plain where neither
+    // is, or where the change rounds away to nothing, as the text shows it.
+    const delta = (difference, text, judged = true) => {
+      if (!p || !Number.isFinite(difference)) return null;
+      const kind = !judged || text.startsWith('±') ? '' : difference > 0 ? 'up' : 'down';
+      return { text, kind };
+    };
+    const points = (key, digits, flip = 1) => p && delta(flip * (m[key] - p[key]), format.points(flip * (m[key] - p[key]), digits));
     $('#kpis').replaceChildren(
       figure('Total return', format.bigPercent(m.total_return), holding(format.bigPercent(b.total_return)),
-        { compare: bars(m.total_return, b.total_return), valueClass: sign(m.total_return) }),
+        { compare: bars(m.total_return, b.total_return), valueClass: sign(m.total_return), delta: points('total_return', 0) }),
       figure('Annual return', format.percent(m.cagr, 1), holding(format.percent(b.cagr, 1)),
-        { compare: bars(m.cagr, b.cagr), valueClass: sign(m.cagr), title: 'Compound annual growth rate' }),
-      figure('Sharpe ratio', format.ratio(m.sharpe), holding(format.ratio(b.sharpe)), { compare: bars(m.sharpe, b.sharpe), valueClass: sign(m.sharpe) }),
+        { compare: bars(m.cagr, b.cagr), valueClass: sign(m.cagr), title: 'Compound annual growth rate', delta: points('cagr', 1) }),
+      figure('Sharpe ratio', format.ratio(m.sharpe), holding(format.ratio(b.sharpe)),
+        { compare: bars(m.sharpe, b.sharpe), valueClass: sign(m.sharpe), delta: p && delta(m.sharpe - p.sharpe, format.change(m.sharpe - p.sharpe)) }),
       figure('Worst drawdown', format.percent(-m.max_drawdown, 1), holding(format.percent(-b.max_drawdown, 1)),
-        { compare: bars(m.max_drawdown, b.max_drawdown) }),
-      figure('Trades', format.integer(m.trades), `${format.percent(m.win_rate, 0)} of them won`, { title: `Profit factor ${format.ratio(m.profit_factor)}` }),
-      figure('In the market', format.percent(m.exposure, 0), `${format.number(m.turnover, 1)}× turnover a year`),
+        { compare: bars(m.max_drawdown, b.max_drawdown), delta: points('max_drawdown', 1, -1) }),
+      figure('Trades', format.integer(m.trades), `${format.percent(m.win_rate, 0)} of them won`,
+        { title: `Profit factor ${format.ratio(m.profit_factor)}`, delta: p && delta(m.trades - p.trades, format.change(m.trades - p.trades, 0), false) }),
+      figure('In the market', format.percent(m.exposure, 0), `${format.number(m.turnover, 1)}× turnover a year`,
+        { delta: p && delta(m.exposure - p.exposure, format.points(m.exposure - p.exposure, 0), false) }),
     );
+  }
+
+  // Keeps this backtest to compare the next ones with, or lets go of the one kept.
+  togglePin() {
+    const r = this.result;
+    // The button that had the focus goes away: the one that undoes it takes the focus instead.
+    const focused = document.activeElement === $('#pin') || $('#pinned').contains(document.activeElement);
+    if (this.pinned) {
+      this.pinned = null;
+    } else if (r) {
+      const params = Object.entries(r.strategy.params).map(([k, v]) => `${k} ${format.number(v, 2)}`).join(', ');
+      const from = year(r.series.time[0]);
+      const to = year(r.series.time.at(-1));
+      this.pinned = {
+        strategy: params ? `${r.strategy.name} (${params})` : r.strategy.name,
+        market: subject(r.dataset),
+        years: from === to ? `${from}` : `${from}–${to}`,
+        metrics: r.metrics,
+        time: r.series.time,
+        equity: r.series.equity,
+      };
+    } else {
+      return;
+    }
+    this.renderPinned();
+    this.renderFigures();
+    this.renderLegend();
+    this.renderChart(true);
+    this.built.delete('metrics');
+    if (this.detail === 'metrics') this.renderDetail();
+    if (focused) (this.pinned ? $('#pinned button') : $('#pin')).focus();
+  }
+
+  // The strip above the figures that names the pinned run, and the button that pins or unpins.
+  renderPinned() {
+    const p = this.pinned;
+    const button = $('#pin');
+    button.querySelector('span').textContent = p ? 'Unpin' : 'Pin to compare';
+    button.title = p ? 'Stop comparing with the pinned backtest (P)' : 'Pin this backtest, to compare the next ones with it (P)';
+    const strip = $('#pinned');
+    strip.hidden = !p;
+    document.body.classList.toggle('pinning', Boolean(p));
+    if (!p) return;
+    const unpin = element('button', { class: 'text-button small', type: 'button', onclick: () => this.togglePin() }, 'Unpin');
+    strip.replaceChildren(element('span', { class: 'swatch dashed', style: { color: palette.o2 }, 'aria-hidden': 'true' }),
+      element('span', { class: 'pinned-text' }, 'Compared with ', element('b', {}, p.strategy), ` on ${p.market}, ${p.years}`), unpin);
+  }
+
+  // The pinned run's equity on this run's dates: as of each date, and started from this run's equity on the first date
+  // they share, so the lines leave together whatever their capital or start.
+  pinnedEquity(times, equity) {
+    const p = this.pinned;
+    if (!p) return null;
+    const values = new Array(times.length).fill(null);
+    let j = -1;
+    for (let i = 0; i < times.length; i += 1) {
+      while (j + 1 < p.time.length && p.time[j + 1] <= times[i]) j += 1;
+      if (j >= 0 && times[i] <= p.time.at(-1)) values[i] = p.equity[j];
+    }
+    const first = values.findIndex((v) => v !== null);
+    if (first < 0) return null;
+    const scale = equity[first] / values[first];
+    return values.map((v) => (v === null ? null : v * scale));
   }
 
   renderLegend() {
@@ -213,6 +292,10 @@ export class BacktestView {
       items.push(element('span', { class: 'legend-item', style: { color: palette.text2 }, title }, element('span', { class: 'swatch ring' }), 'Exit'));
     }
     items.push(element('span', { class: 'legend-item', style: { color: palette.strategy } }, element('span', { class: 'swatch thick' }), element('span', { style: { color: 'var(--text-2)' } }, 'Strategy')));
+    if (this.pinned) {
+      items.push(element('span', { class: 'legend-item', style: { color: palette.o2 }, title: `${this.pinned.strategy} on ${this.pinned.market}, from the same start` },
+        element('span', { class: 'swatch dashed' }), element('span', { style: { color: 'var(--text-2)' } }, 'Pinned')));
+    }
     items.push(element('span', { class: 'legend-item', style: { color: palette.benchmark } }, element('span', { class: 'swatch thick' }), element('span', { style: { color: 'var(--text-2)' } }, 'Buy and hold')));
     $('#legend').replaceChildren(...items);
   }
@@ -258,6 +341,10 @@ export class BacktestView {
       });
     }
     const initial = r.metrics.final_equity / (1 + r.metrics.total_return);
+    this.pinnedValues = this.pinnedEquity(times, r.series.equity);
+    const pinnedLine = this.pinnedValues
+      ? [{ kind: 'line', values: this.pinnedValues, color: palette.o2, width: 1.5, dash: [5, 4], endLabel: format.moneyCompact }]
+      : [];
     panes.push({
       id: 'equity',
       title: 'Equity',
@@ -269,6 +356,7 @@ export class BacktestView {
       endLabels: true,
       series: [
         { kind: 'line', values: r.series.benchmark, color: palette.benchmark, width: 1.4, endLabel: format.moneyCompact },
+        ...pinnedLine,
         { kind: 'line', values: r.series.equity, color: palette.strategy, width: 2, endLabel: format.moneyCompact },
       ],
       guides: [{ value: initial, color: palette.faint, dash: [2, 3] }],
@@ -309,6 +397,8 @@ export class BacktestView {
     html += row('Position', exposure === 0 ? 'flat' : `${exposure > 0 ? 'long' : 'short'}, ${format.percent(Math.abs(exposure), 0)} of equity`);
     html += row('Strategy', format.money(r.series.equity[index]), palette.strategy);
     html += row('Buy and hold', format.money(r.series.benchmark[index]), palette.benchmark);
+    const pinned = this.pinnedValues?.[index];
+    if (pinned !== null && pinned !== undefined) html += row('Pinned', format.money(pinned), palette.o2);
     html += row('Drawdown', format.percent(r.series.drawdown[index], 1));
     const trade = r.trades.find((t) => t.entry_index <= index && index <= t.exit_index);
     if (trade) html += row('This trade', `${format.percent(trade.return, 1, true)} over ${trade.bars} bars`);

@@ -121,16 +121,19 @@ const METRIC_GROUPS = [
   ]],
 ];
 
-export function metricsTable(container, metrics, benchmark) {
+// Every measure of the strategy beside buying and holding's, and beside a pinned run's if there is one.
+export function metricsTable(container, metrics, benchmark, pinned = null) {
   const body = element('tbody');
   for (const [group, rows] of METRIC_GROUPS) {
-    body.append(element('tr', {}, element('td', { class: 'group', colspan: 3 }, group)));
+    body.append(element('tr', {}, element('td', { class: 'group', colspan: pinned ? 4 : 3 }, group)));
     for (const [label, key, show] of rows) {
       const own = group === 'Against buy and hold';
-      body.append(element('tr', {}, td(label, 'left text'), td(show(metrics[key])), td(own ? '' : show(benchmark[key]), 'muted')));
+      body.append(element('tr', {}, td(label, 'left text'), td(show(metrics[key])), pinned ? td(show(pinned[key]), 'pinned-value') : null,
+        td(own ? '' : show(benchmark[key]), 'muted')));
     }
   }
-  const head = element('tr', {}, element('th', { scope: 'col' }, 'Metric'), element('th', { scope: 'col' }, 'Strategy'), element('th', { scope: 'col' }, 'Buy and hold'));
+  const head = element('tr', {}, element('th', { scope: 'col' }, 'Metric'), element('th', { scope: 'col' }, 'Strategy'),
+    pinned ? element('th', { scope: 'col' }, 'Pinned') : null, element('th', { scope: 'col' }, 'Buy and hold'));
   container.replaceChildren(element('table', {}, element('thead', {}, head), body));
 }
 

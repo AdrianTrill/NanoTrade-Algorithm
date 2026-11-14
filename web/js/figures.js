@@ -16,8 +16,11 @@ export function versus(prefix, text) {
   return node;
 }
 
-export function figure(label, value, below, { compare = null, valueClass = '', title = '' } = {}) {
+// `delta` compares the figure with a pinned run's: { text, kind }, where kind is up, down, or '' for neither better nor
+// worse.
+export function figure(label, value, below, { compare = null, valueClass = '', title = '', delta = null } = {}) {
   const children = [element('span', { class: 'label' }, label), element('span', { class: `value ${valueClass}`.trim() }, value)];
+  if (delta) children.push(element('span', { class: `delta ${delta.kind}`.trim() }, delta.text, element('span', { class: 'delta-note' }, ' vs pinned')));
   if (compare) {
     children.push(element('span', { class: 'bars', 'aria-hidden': 'true' },
       element('span', { class: 'mine', style: { width: `${compare[0]}%` } }),

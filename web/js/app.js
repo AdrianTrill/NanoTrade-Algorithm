@@ -105,6 +105,7 @@ class App {
       r: () => this.backtest.chart.reset(),
       s: () => this.share(),
       a: () => this.api.open(this.currentRequest()),
+      p: () => this.backtest.togglePin(),
       t: () => $('#theme').click(),
       '?': () => {
         const dialog = $('#shortcuts');
@@ -220,6 +221,10 @@ class App {
     list.push(
       { group: 'Actions', label: 'Copy a link to this backtest', keywords: 'share url', icon: 'link', hint: 'S', run: actions.s },
       { group: 'Actions', label: 'This run as an API request', keywords: 'json curl command line cli developer code', icon: 'code', hint: 'A', run: actions.a },
+      ...(this.backtest.result ? [{
+        group: 'Actions', label: this.backtest.pinned ? 'Unpin the backtest compared with' : 'Pin this backtest, to compare the next ones with it',
+        keywords: 'pin compare baseline', icon: 'pin', hint: 'P', run: actions.p,
+      }] : []),
       { group: 'Actions', label: `Switch to the ${dark ? 'light' : 'dark'} theme`, keywords: 'theme appearance mode', icon: dark ? 'sun' : 'moon', hint: 'T', run: toggleTheme },
     );
     if (themeChoice() !== 'system') {

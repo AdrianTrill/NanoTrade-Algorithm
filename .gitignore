@@ -1,10 +1,15 @@
-.DS_Store
 build/
+build-*/
 *.o
 *.obj
-*.out
 *.exe
-CMakeCache.txt
-CMakeFiles/
-Testing/
+*.dSYM/
 compile_commands.json
+.DS_Store
+.cache/
+.venv/
+__pycache__/
+node_modules/
+
+# Output of the site's checks.
+site-screenshots/

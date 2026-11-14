@@ -2,32 +2,132 @@ name: CI
 
 on:
   push:
-    branches: ["main"]
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  LLVM_TOOLS_VERSION: "22.1.8"
 
 jobs:
   build-and-test:
+    name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        include:
+          - name: Linux / GCC
+            os: ubuntu-latest
+            compiler: -DCMAKE_CXX_COMPILER=g++
+          - name: Linux / Clang
+            os: ubuntu-latest
+            compiler: -DCMAKE_CXX_COMPILER=clang++
+          - name: macOS / Apple Clang
+            os: macos-latest
+            compiler: -DCMAKE_CXX_COMPILER=clang++
+          - name: Windows / MSVC
+            os: windows-latest
+            compiler: ""
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Check out repository
+        uses: actions/checkout@v7
 
       - name: Configure
-        run: cmake -S . -B build -DNANOTRADE_BUILD_TESTS=ON
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DNANOTRADE_WARNINGS_AS_ERRORS=ON ${{ matrix.compiler }}
 
       - name: Build
-        run: cmake --build build --config Release
+        run: cmake --build build --config Release --parallel
 
-      - name: Run tests
+      - name: Test
+        run: ctest --test-dir build --build-config Release --output-on-failure
+
+  sanitizers:
+    name: Sanitizers / ASan + UBSan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Configure
+        run: >
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_COMPILER=clang++
+          -DNANOTRADE_WARNINGS_AS_ERRORS=ON -DNANOTRADE_SANITIZERS=address,undefined
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Test
+        env:
+          ASAN_OPTIONS: detect_leaks=1:detect_stack_use_after_return=1:check_initialization_order=1:strict_string_checks=1
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
         run: ctest --test-dir build --output-on-failure
 
-      - name: Smoke test CLI help
-        run: ./build/nanotrade --help
+  thread-sanitizer:
+    name: Sanitizers / TSan
+    runs-on: ubuntu-latest
 
-      - name: Smoke test CLI demo
-        run: ./build/nanotrade --strategy sma --short-window 3 --long-window 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Configure
+        run: >
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_COMPILER=clang++
+          -DNANOTRADE_WARNINGS_AS_ERRORS=ON -DNANOTRADE_SANITIZERS=thread
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      # ThreadSanitizer's shadow memory layout doesn't fit the 32 bits of mmap randomization recent Ubuntu kernels use.
+      - name: Reduce address-space randomization for ThreadSanitizer
+        run: sudo sysctl vm.mmap_rnd_bits=28
+
+      - name: Test
+        env:
+          TSAN_OPTIONS: halt_on_error=1:second_deadlock_stack=1
+        run: ctest --test-dir build --output-on-failure
+
+  format:
+    name: Format / clang-format
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Install clang-format
+        run: pip install "clang-format==${LLVM_TOOLS_VERSION}"
+
+      - name: Check formatting
+        run: git ls-files '*.cpp' '*.hpp' | xargs clang-format --dry-run --Werror
+
+  data:
+    name: Data / a fresh download matches
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      # Downloads the bars again at the pinned commit; every file must match data/manifest.json byte for byte.
+      - name: Prepare the data again and compare
+        run: python tools/prepare_data.py --check

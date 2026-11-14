@@ -1,264 +1,87 @@
-# NanoTrade Algorithm
+# NanoTrade
 
-NanoTrade Algorithm is a compact C++17 trading backtester focused on deterministic simulation, clean architecture, and inspectable behavior. It is intentionally scoped as a single-instrument, long-only research engine so the implementation stays credible, easy to review, and useful as a software engineering project rather than a finance feature dump.
+NanoTrade is a backtesting engine in C++20. A strategy is a set of rules in a small language, such as `close > sma(close, 200) and rsi(close, 2) < 10`, read at each bar's close and traded at the next bar's open, so no rule can trade on prices it hasn't seen. The engine handles long and short positions, sizing by a share of equity or by a volatility target, stop losses, take profits, trailing stops, commissions, slippage, and the cost of borrowing for shorts, and reports thirty measures of the result against buying and holding. It is tested on 68,292 daily bars of seven US stocks from 1962 to 2013, bundled with it, on Linux, macOS, and Windows.
 
-## Why this project is interesting
-
-This repository is stronger as an engineering artifact than as a trading pitch:
-
-- It implements a deterministic event loop with explicit signal timing and order-fill rules.
-- It separates market data loading, indicators, strategy generation, execution, portfolio state, and reporting.
-- It treats input validation, error handling, and repeatable tests as first-class concerns.
-- It provides a small CLI and sample dataset so the behavior is reproducible without network access.
-
-## Features
-
-### Indicators
-
-- SMA
-- EMA
-- Momentum
-- RSI
-
-### Strategies
-
-- SMA crossover
-- EMA crossover
-- Momentum
-- RSI threshold
-
-### Backtest outputs
-
-- Final equity
-- Net profit
-- Total return
-- Max drawdown
-- Equity curve snapshots
-- Trade log with side, fill price, commission, and post-trade cash
-
-## Architecture
+## The rule language
 
 ```text
-.
-├── app/
-│   └── main.cpp
-├── data/
-│   └── sample_ohlcv.csv
-├── include/nanotrade/
-│   ├── backtest_engine.h
-│   ├── downloader.h
-│   ├── indicators.h
-│   ├── market_data.h
-│   ├── reporting.h
-│   └── strategies.h
-├── src/
-│   ├── backtest_engine.cpp
-│   ├── downloader.cpp
-│   ├── indicators.cpp
-│   ├── market_data.cpp
-│   ├── reporting.cpp
-│   └── strategies.cpp
-├── tests/
-│   └── test_main.cpp
-├── CMakeLists.txt
-└── Makefile
+crossover(ema(close, 12), ema(close, 26)) and rsi(close, 14) < 70
+close > highest(high, 55)[1]
+zscore(close, 20) < -2 and close > sma(close, $trend)
 ```
 
-Module responsibilities:
+A rule combines the prices (`open`, `high`, `low`, `close`, `volume`, `hl2`), numbers, arithmetic, comparisons, `and`, `or`, `not`, and twenty functions: `sma`, `ema`, `rsi`, `stdev`, `highest`, `lowest`, `roc`, `change`, `zscore`, `atr`, `macd`, `macd_signal`, `bb_upper`, `bb_lower`, `crossover`, `crossunder`, `abs`, `min`, `max`, and `log`. `x[n]` is `x` as it was `n` bars ago, and `$name` is a parameter. Rules are type-checked before they run, and an error names the rule and the characters at fault, with a suggestion for a misspelled name: `unknown function 'smaa'; did you mean sma?`.
 
-- `market_data`: CSV parsing, validation, and the `Bar` data model.
-- `indicators`: Pure computations over validated market bars.
-- `strategies`: Signal generation behind a small strategy interface.
-- `backtest_engine`: Portfolio state, order simulation, trade log, equity curve, and metrics.
-- `reporting`: Human-readable summaries for CLI output.
-- `downloader`: Optional Yahoo Finance download path when `libcurl` is available at build time.
+An indicator is undefined until its window is full, and a comparison with an undefined value doesn't hold, so a 200-day average starts trading 200 bars in. Every indicator a strategy uses is computed once and shared: rules over the same `sma(close, 20)` read one array.
 
-### Data flow
+## Strategies
 
-```text
-CSV input
-  -> std::vector<Bar>
-  -> Strategy::generateSignals(...)
-  -> std::vector<Signal>
-  -> BacktestEngine::run(...)
-  -> BacktestResult
-  -> formatSummary(...)
-  -> CLI / logs
-```
+Every built-in strategy is written in the rule language, so a custom one is no different from them.
 
-### API overview
+| Strategy | Goes long when | Exits when |
+| --- | --- | --- |
+| Buy and hold | always | never |
+| SMA crossover | `sma(close, $fast) > sma(close, $slow)` | the entry stops holding |
+| EMA crossover | `ema(close, $fast) > ema(close, $slow)` | the entry stops holding |
+| MACD | the MACD line is above its signal line | the entry stops holding |
+| Time-series momentum | `roc(close, $lookback) > 0` | the entry stops holding |
+| Donchian breakout | `close > highest(high, $entry)[1]` | `close < lowest(low, $exit)[1]` |
+| RSI reversion | `rsi(close, $period) < $lower` | `rsi(close, $period) > $upper` |
+| Bollinger reversion | `close < bb_lower(close, $period, $k)` | `close > sma(close, $period)` |
+| RSI(2) pullback | `close > sma(close, $trend) and rsi(close, 2) < $dip` | `close > sma(close, $exit)` |
+
+With shorts allowed, each takes the mirror-image short. Parameters are checked against their ranges, and pairs that must be ordered, such as a fast window below a slow one, are checked too.
+
+## How a backtest runs
+
+1. The rules are evaluated over every bar, giving the position wanted at each close: long, short, or flat.
+2. A change of position is ordered at that close and filled at the next bar's open, moved against the trade by the slippage, and charged the commission.
+3. Within each bar, stops are checked against its range. An open beyond a stop fills at the open; a bar that reached both the stop and the take profit is assumed to have reached the stop first. After a stop, the strategy has to change its mind before it can enter the same way again.
+4. Equity is marked at every close. Shorts pay their borrowing cost each bar, and a position still open at the end is closed at the last close.
+
+Orders sized at a close may no longer fit when the next open gaps; they are trimmed to the leverage cap, and counted.
+
+## Use it from C++
 
 ```cpp
-#include "nanotrade/backtest_engine.h"
-#include "nanotrade/market_data.h"
-#include "nanotrade/strategies.h"
+#include "nanotrade/engine.hpp"
+#include "nanotrade/metrics.hpp"
+#include "nanotrade/strategy.hpp"
 
-auto bars = nanotrade::MarketDataLoader::loadCsvFile("data/sample_ohlcv.csv");
-nanotrade::SmaCrossoverStrategy strategy(3, 5);
+const nanotrade::BarSeries bars = nanotrade::load_csv_file("data/AAPL.csv", "AAPL").series;
+nanotrade::indicators::Cache cache(bars);
+
+nanotrade::StrategySpec strategy;
+strategy.id = "custom";
+strategy.params = {{"trend", 200}, {"dip", 10}};
+strategy.rules.long_entry = "close > sma(close, $trend) and rsi(close, 2) < $dip";
+strategy.rules.long_exit = "close > sma(close, 5)";
 
 nanotrade::BacktestConfig config;
-config.initial_cash = 10000.0;
-config.order_quantity = 10;
+config.commission_bps = 1;
+config.slippage_bps = 2;
 
-nanotrade::BacktestResult result = nanotrade::BacktestEngine::run(bars, strategy, config);
+const nanotrade::Signals signals = nanotrade::generate_signals(strategy, cache, config.allow_short);
+const nanotrade::BacktestResult result = nanotrade::run_backtest(bars, signals.direction, config, 0, bars.size());
+const nanotrade::Metrics metrics = nanotrade::compute_metrics(bars, result, {}, config.risk_free_rate);
 ```
 
-## How the backtester works
+The loader reads the CSV files of Yahoo, Stooq, Nasdaq.com, and Quandl: it finds the columns by name, uses adjusted prices when the file has them, reads dates in either order, sorts files that are newest first, and repairs and reports bars whose high and low don't contain the open and close.
 
-The simulation is intentionally simple and explicit:
+## Data
 
-1. Load and validate OHLCV bars from CSV.
-2. Generate one signal per bar from the selected strategy.
-3. Evaluate signals on each bar close.
-4. Queue any required order.
-5. Fill queued orders on the next bar open.
-6. Mark the portfolio to market on each bar close.
-7. Optionally close any remaining position on the final bar close.
+[`data/`](data/README.md) holds daily bars of Apple, Boeing, Caterpillar, Dell, eBay, Ford, and General Electric from the Quandl WIKI dataset, which is in the public domain, adjusted for splits and dividends. [`tools/prepare_data.py`](tools/prepare_data.py) downloads them at a pinned commit, and CI requires a fresh download to reproduce them byte for byte.
 
-This avoids same-bar lookahead and makes the event flow easy to inspect in code and tests.
+## Build and test
 
-## Trade simulation assumptions
-
-- Single instrument
-- Long-only
-- Fixed share quantity per order
-- No leverage
-- Signals are evaluated on the close
-- Orders are filled on the next bar open
-- Optional fixed commission per order
-- Optional slippage in basis points
-- Remaining open positions can be force-closed on the last bar
-
-These assumptions are deliberately narrow so results are understandable and reproducible.
-
-## Build
-
-### Option 1: CMake
+Requirements: CMake 3.21+ and a C++20 compiler (GCC 11+, Clang 14+, Apple Clang 15+, or MSVC 2022).
 
 ```bash
-cmake -S . -B build
-cmake --build build
-```
-
-If `libcurl` is available, the optional Yahoo downloader module is compiled in automatically. The core backtester, CLI demo, and tests do not depend on network access.
-
-### Option 2: Make
-
-```bash
-make
-```
-
-## Run
-
-Default demo on the included sample data:
-
-```bash
-./build/nanotrade
-```
-
-Sample output:
-
-```text
-Strategy: sma_crossover
-Bars processed: 20
-Initial cash: 10000.00
-Final equity: 9930.00
-Net profit: -70.00
-Total return: -0.70%
-Max drawdown: 0.70%
-Executed trades: 4
-```
-
-Try a different strategy:
-
-```bash
-./build/nanotrade --strategy ema --short-window 3 --long-window 6
-./build/nanotrade --strategy momentum --lookback 3
-./build/nanotrade --strategy rsi --rsi-period 5 --rsi-entry 35 --rsi-exit 55
-```
-
-Use your own CSV:
-
-```bash
-./build/nanotrade --csv path/to/data.csv --strategy sma --short-window 10 --long-window 30
-```
-
-Expected CSV columns:
-
-```text
-Date,Open,High,Low,Close,Volume
-```
-
-Yahoo-style CSVs with an extra `Adj Close` column also work.
-
-## Run tests
-
-### CMake
-
-```bash
-cmake -S . -B build
-cmake --build build
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-### Make
+The tests check the indicators against direct reimplementations, the language's parsing, types, and errors, each built-in strategy against a hand-written version of it, the engine's fills, costs, and stops against hand-computed cases, and properties over the bundled data: equity always adds up to the trades, and changing every price after a bar changes nothing before it. CI runs them with GCC, Clang, Apple Clang, and MSVC, with warnings as errors, and under AddressSanitizer, UndefinedBehaviorSanitizer, and ThreadSanitizer.
 
-```bash
-make test
-```
-
-The test suite covers:
-
-- indicator correctness
-- strategy signal generation
-- next-bar-open execution behavior
-- deterministic repeatability
-- final state and cash-constraint invariants
-- malformed input and invalid parameter handling
-
-## Continuous integration
-
-GitHub Actions builds and tests the project automatically on every push and pull request on:
-
-- `ubuntu-latest`
-- `macos-latest`
-
-## Example workflow
-
-```bash
-./build/nanotrade --list-strategies
-./build/nanotrade --strategy sma --short-window 3 --long-window 5
-./build/nanotrade --strategy momentum --lookback 3 --commission 1.00 --slippage-bps 5
-```
-
-The CLI prints a concise summary and trade log rather than claiming profitability from the sample dataset.
-
-## Limitations
-
-- Single-symbol backtests only
-- Long-only execution model
-- No intraday bars or order book simulation
-- No dividends, splits, or portfolio rebalancing
-- No portfolio optimization or parameter search
-
-These are intentional tradeoffs to keep the core engine small, deterministic, and easy to inspect.
-
-## Future improvements
-
-- Multi-asset portfolio support
-- Additional fill models
-- Config file input for repeatable scenarios
-- More structured output formats such as JSON
-- Parameterized strategy sweeps
-
-## Why this is relevant for backend / systems / performance roles
-
-The strongest signal in this project is not finance domain complexity. It is the shape of the code:
-
-- typed data flow with clear ownership boundaries
-- deterministic state transitions
-- defensive validation and failure handling
-- testable pure computation modules
-- buildable, runnable, and inspectable repository structure
-
-That makes the project a better fit for internships and new grad roles focused on backend services, infrastructure, systems programming, or performance-sensitive C++ code.
+Released under the [MIT License](LICENSE).

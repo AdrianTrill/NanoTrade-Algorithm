@@ -336,6 +336,15 @@ try {
   await sleep(400);
   check(await page.evaluate(() => !document.documentElement.classList.contains('spec-open')
     && document.activeElement === document.querySelector('#spec-toggle')), 'Escape closes them and returns the focus');
+  await page.tap('#crumb-data');
+  await sleep(400);
+  check(await page.evaluate(() => document.querySelector('#command').open && document.activeElement === document.querySelector('#command-list')
+    && document.querySelector('#command [aria-selected="true"]')?.textContent.startsWith('AAPL')), 'the market\'s breadcrumb opens its list without the keyboard');
+  const ford = await page.$$eval('#command [role="option"]', (options) => options.find((option) => option.textContent.startsWith('F ·')).id);
+  before = await backtests(page);
+  await page.tap(`#${ford}`);
+  await nextBacktest(page, before);
+  check(/on Ford/.test(await text(page, '#headline')), 'and a tap on another backtests it there');
   await page.close();
 
   // A tablet: the settings slide in from the left, beside the report.

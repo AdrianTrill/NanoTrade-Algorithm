@@ -4,6 +4,9 @@
 import { $, $$, element, icon } from './dom.js';
 import { MOD } from './shortcuts.js';
 
+// A screen with no pointer to hover has a keyboard of its own, which a focused field brings up over the list.
+const touch = matchMedia('(hover: none)');
+
 const PLACEHOLDERS = {
   data: 'Find a market…',
   strategy: 'Find a strategy…',
@@ -22,6 +25,12 @@ export class CommandMenu {
     this.active = -1;
     this.input.addEventListener('input', () => this.filter());
     this.input.addEventListener('keydown', (event) => this.key(event));
+    // A breadcrumb on a touch screen gives the list the focus. A key typed there still searches, and the arrows and
+    // Enter still move and choose.
+    this.list.addEventListener('keydown', (event) => {
+      if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) this.input.focus();
+      else this.key(event);
+    });
     this.list.addEventListener('pointermove', (event) => {
       const option = event.target.closest('[role="option"]');
       if (option) this.activate(Number(option.dataset.index), { scroll: false });
@@ -47,6 +56,9 @@ export class CommandMenu {
     this.input.value = '';
     this.input.placeholder = PLACEHOLDERS[scope] ?? 'Search markets, strategies, views, and actions…';
     this.dialog.dataset.scope = scope ?? 'all';
+    // The dialog gives the focus to the element marked autofocus, or else to the field.
+    this.list.toggleAttribute('autofocus', Boolean(scope && touch.matches));
+    this.list.tabIndex = -1;
     this.dialog.showModal();
     this.filter();
     const current = this.items.findIndex((command) => command.current);
@@ -102,10 +114,12 @@ export class CommandMenu {
     const option = $(`#command-${index}`);
     if (!option) {
       this.input.removeAttribute('aria-activedescendant');
+      this.list.removeAttribute('aria-activedescendant');
       return;
     }
     option.setAttribute('aria-selected', 'true');
     this.input.setAttribute('aria-activedescendant', option.id);
+    this.list.setAttribute('aria-activedescendant', option.id);
     if (scroll) option.scrollIntoView({ block: 'nearest' });
   }
 

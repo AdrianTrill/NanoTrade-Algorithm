@@ -1,6 +1,6 @@
 // The lab in headless Chrome: it must start without errors, run a backtest, react to its settings, report a rule's
 // error where it is, run a sweep, a walk-forward test, and Monte Carlo resampling, open a CSV, switch editions, answer
-// its keys, restore a backtest from a link, and fit a phone's screen.
+// its keys, restore a backtest from a link, and fit a phone's screen, with the settings in a sheet over the result.
 //
 //   node web/ui-check.mjs SITE_DIR [--native PATH_TO_NANOTRADE] [--screenshots DIR]
 //
@@ -224,10 +224,38 @@ try {
     'with its short rules');
   await page.close();
 
-  // A phone.
+  // A phone: the result first, and the settings in a sheet over it.
   page = await open('', { width: 390, height: 844, mobile: true });
   check(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'nothing overflows a phone\'s screen');
+  check(await page.$eval('#headline', (node) => node.getBoundingClientRect().top < innerHeight / 3), 'the result comes first on a phone');
+  check(await page.$eval('#spec', (node) => getComputedStyle(node).visibility === 'hidden'), 'the settings wait until they\'re asked for');
   await shoot(page, 'phone');
+  await page.tap('#spec-toggle');
+  await sleep(400);
+  check(await page.evaluate(() => document.querySelector('#spec-toggle').getAttribute('aria-expanded') === 'true'
+    && getComputedStyle(document.querySelector('#spec')).visibility === 'visible'
+    && document.querySelector('#spec').contains(document.activeElement)), 'Settings opens them, with the focus inside');
+  check(await page.$eval('#kpis', (node) => node.getBoundingClientRect().top < innerHeight / 3), 'with the headline figures in view above them');
+  await shoot(page, 'phone-settings');
+  before = await backtests(page);
+  await page.tap('#direction [data-value="both"]');
+  await nextBacktest(page, before);
+  check((await page.evaluate(() => location.search)).includes('short=1'), 'a change in them reruns the backtest at once');
+  await page.keyboard.press('Escape');
+  await sleep(400);
+  check(await page.evaluate(() => !document.documentElement.classList.contains('spec-open')
+    && document.activeElement === document.querySelector('#spec-toggle')), 'Escape closes them and returns the focus');
+  await page.close();
+
+  // A tablet: the settings slide in from the left, beside the report.
+  page = await open('', { width: 820, height: 1180, mobile: true });
+  await page.tap('#spec-toggle');
+  await sleep(400);
+  const panel = await page.$eval('#spec', (node) => node.getBoundingClientRect().toJSON());
+  check(panel.left === 0 && panel.width < 450, 'on a tablet they open as a panel beside the report');
+  await page.tap('#scrim');
+  await sleep(400);
+  check(await page.evaluate(() => !document.documentElement.classList.contains('spec-open')), 'a tap beside it closes it');
   await page.close();
 
   check(problems.length === 0, `no console errors or failed requests${problems.length ? `:\n  ${problems.join('\n  ')}` : ''}`);

@@ -40,6 +40,7 @@
     <symbol id="i-download" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5"/><path d="M4 17v3h16v-3"/></g></symbol>
     <symbol id="i-x" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
     <symbol id="i-function" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4.5c-2.5-.8-4 .3-4.5 3L8.5 18c-.5 2.7-2 3.6-4.5 2.8"/><path d="M7 10h7"/><path d="m14.5 13 5 5M19.5 13l-5 5"/></g></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></g></symbol>
     <symbol id="i-edit" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16Z"/><path d="m13.5 6.5 4 4"/></g></symbol>
   </svg>
 
@@ -53,11 +54,12 @@
             <span class="edition">a backtesting lab</span>
           </a>
           <p class="runtime" id="runtime" title="Where the engine runs"><span class="dot"></span><span id="runtime-label">Loading the engine</span><span class="runtime-detail" id="runtime-detail"></span></p>
+          <button class="spec-toggle" id="spec-toggle" aria-controls="spec" aria-expanded="false" title="The backtest's settings"><svg class="icon"><use href="#i-sliders"/></svg><span>Settings</span></button>
           <nav class="tools" aria-label="Page tools">
             <button class="text-button" id="share" title="Copy a link to this backtest (S)"><svg class="icon"><use href="#i-link"/></svg><span>Link</span></button>
             <button class="text-button" id="theme" title="Night edition (T)"><svg class="icon"><use href="#i-moon"/></svg><span>Night</span></button>
             <button class="text-button" id="help" title="Keyboard shortcuts (?)"><svg class="icon"><use href="#i-keyboard"/></svg><span>Keys</span></button>
-            <a class="text-button" href="https://github.com/AdrianTrill/NanoTrade-Algorithm" target="_blank" rel="noopener"><svg class="icon"><use href="#i-code"/></svg><span>Source</span></a>
+            <a class="text-button source-link" href="https://github.com/AdrianTrill/NanoTrade-Algorithm" target="_blank" rel="noopener" aria-label="Source code on GitHub"><svg class="icon"><use href="#i-code"/></svg><span>Source</span></a>
           </nav>
         </div>
         <nav class="sections" role="tablist" aria-label="Views">
@@ -70,7 +72,12 @@
     </header>
 
     <div class="layout">
-      <aside class="spec" id="spec" aria-label="The backtest's specification">
+      <aside class="spec" id="spec" aria-label="The backtest's settings">
+        <header class="spec-drawer-head">
+          <h2>Settings</h2>
+          <p class="note">Changes rerun at once.</p>
+          <button class="button primary" id="spec-close">Done</button>
+        </header>
         <section class="spec-section">
           <header class="spec-head"><h2><span class="num">1</span>Data</h2></header>
           <div class="field">
@@ -262,10 +269,13 @@
       </main>
     </div>
 
+    <div class="scrim" id="scrim" hidden></div>
+
     <footer class="colophon">
       <span class="status-engine" id="status-engine"><span class="dot"></span><span>Starting</span></span>
       <span>Data: Quandl WIKI prices, in the public domain, via MarketData.jl</span>
       <span>Research software, not investment advice</span>
+      <a class="colophon-link" href="https://github.com/AdrianTrill/NanoTrade-Algorithm" target="_blank" rel="noopener">Source on GitHub</a>
       <button class="text-button small push" id="status-help" title="Keyboard shortcuts"><kbd>?</kbd><span>Shortcuts</span></button>
     </footer>
   </div>

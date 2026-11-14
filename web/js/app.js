@@ -5,6 +5,7 @@ import { $, $$, element } from './dom.js';
 import { connect, Superseded } from './engine.js';
 import { highlight } from './editor.js';
 import * as format from './format.js';
+import { Drawer, trackMasthead } from './layout.js';
 import { readPalette } from './palette.js';
 import { MonteCarloView, OptimizeView, WalkForwardView } from './research.js';
 import { startShortcuts } from './shortcuts.js';
@@ -55,6 +56,7 @@ class App {
     this.walk = new WalkForwardView({ engine: this.engine, catalog: this.catalog, onError });
     this.monte = new MonteCarloView({ engine: this.engine, onError });
     startTheme(() => this.redraw());
+    this.drawer = new Drawer();
 
     for (const tab of $$('.view')) tab.addEventListener('click', () => this.showView(tab.dataset.view));
     $('#share').addEventListener('click', () => this.share());
@@ -76,7 +78,10 @@ class App {
         this.controls.reseed();
       },
       o: () => $('#file').click(),
-      e: () => this.controls.editRules(),
+      e: () => {
+        this.drawer.open({ focus: false });
+        this.controls.editRules();
+      },
       f: () => this.openReference(),
       l: () => $('#log').click(),
       c: () => $('#candles').click(),
@@ -335,6 +340,7 @@ class App {
 }
 
 async function main() {
+  trackMasthead();
   readPalette();
   fromQuery(location.search);
   try {

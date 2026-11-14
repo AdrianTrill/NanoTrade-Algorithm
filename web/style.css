@@ -180,6 +180,10 @@ kbd {
 
 /* Masthead ------------------------------------------------------------------------------------------------------- */
 
+html {
+  scroll-padding-top: calc(var(--masthead-height, 100px) + 12px);
+}
+
 .page {
   display: flex;
   flex-direction: column;
@@ -212,6 +216,7 @@ kbd {
   display: flex;
   align-items: center;
   gap: 11px;
+  margin-right: auto;
   color: var(--text);
   text-decoration: none;
   white-space: nowrap;
@@ -236,7 +241,7 @@ kbd {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 0 0 0 auto;
+  margin: 0;
   color: var(--text-2);
   font: 12px/1 var(--font-mono);
   white-space: nowrap;
@@ -358,6 +363,53 @@ kbd {
   background: var(--accent);
 }
 
+.spec-toggle,
+.spec-drawer-head {
+  display: none;
+}
+
+.spec-toggle {
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 12px 0 10px;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text);
+  font: 600 13px/1 var(--font-ui);
+  white-space: nowrap;
+}
+
+.spec-toggle .icon {
+  color: var(--accent);
+}
+
+.spec-toggle:hover,
+.spec-toggle[aria-expanded="true"] {
+  border-color: var(--text);
+  background: var(--text);
+  color: var(--surface);
+}
+
+.spec-toggle:hover .icon,
+.spec-toggle[aria-expanded="true"] .icon {
+  color: inherit;
+}
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  background: color-mix(in srgb, var(--text) 16%, transparent);
+  animation: fade-in 0.2s ease;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
 /* Layout --------------------------------------------------------------------------------------------------------- */
 
 .layout {
@@ -376,8 +428,8 @@ kbd {
 
 .spec {
   position: sticky;
-  top: 118px;
-  max-height: calc(100dvh - 134px);
+  top: calc(var(--masthead-height, 100px) + 20px);
+  max-height: calc(100dvh - var(--masthead-height, 100px) - 36px);
   padding-right: 14px;
   overflow-y: auto;
   scrollbar-width: thin;
@@ -1642,6 +1694,18 @@ td.heat {
   font: 12px/1.5 var(--font-mono);
 }
 
+.colophon-link {
+  color: var(--text-2);
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+  text-underline-offset: 3px;
+}
+
+.colophon-link:hover {
+  color: var(--accent);
+  text-decoration-color: currentColor;
+}
+
 .status-engine {
   display: inline-flex;
   align-items: center;
@@ -1856,25 +1920,68 @@ td.heat {
   }
 }
 
+/* Below 1000px the report comes first, and the settings slide in over it: from the left on a tablet, from the
+   bottom on a phone, leaving the headline figures in view so a change shows as it's made. */
 @media (max-width: 1000px) {
   .layout {
     grid-template-columns: minmax(0, 1fr);
-    gap: 30px;
+    gap: 0;
+  }
+
+  .spec-toggle {
+    display: inline-flex;
   }
 
   .spec {
-    position: static;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
-    gap: 0 36px;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 40;
+    width: min(400px, 88vw);
     max-height: none;
-    padding: 0;
-    overflow: visible;
+    padding: 0 22px 28px;
+    border-right: 1px solid var(--border-strong);
+    background: var(--surface);
+    box-shadow: var(--shadow-pop);
+    overscroll-behavior: contain;
+    transform: translateX(-104%);
+    visibility: hidden;
+    transition: transform 0.28s var(--ease), visibility 0s linear 0.28s;
   }
 
-  .spec-section:last-child {
-    margin-bottom: 18px;
-    border-bottom: 1px solid var(--border);
+  .spec-open .spec {
+    transform: none;
+    visibility: visible;
+    transition: transform 0.28s var(--ease);
+  }
+
+  .spec-drawer-head {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0 -22px 18px;
+    padding: 14px 22px 12px;
+    border-bottom: 2px solid var(--text);
+    background: var(--surface);
+  }
+
+  .spec-drawer-head h2 {
+    margin: 0;
+    font: 700 21px/1 var(--font-serif);
+  }
+
+  .spec-drawer-head .note {
+    margin: 0 auto 0 0;
+    padding-top: 3px;
+  }
+
+  .spec-drawer-head .button {
+    height: 32px;
+    padding: 0 14px;
   }
 
   .sections {
@@ -1891,17 +1998,48 @@ td.heat {
     padding-left: 14px;
   }
 
+  .masthead-row {
+    gap: 6px;
+  }
+
   .edition,
-  .tools .text-button span {
+  .tools .text-button span,
+  .tools #help,
+  .tools .source-link {
     display: none;
   }
 
+  .wordmark {
+    font-size: 23px;
+  }
+
+  .spec {
+    top: auto;
+    right: 0;
+    width: auto;
+    height: 64dvh;
+    padding: 0 16px 24px;
+    border-top: 2px solid var(--text);
+    border-right: 0;
+    transform: translateY(104%);
+  }
+
+  .spec-drawer-head {
+    margin: 0 -16px 16px;
+    padding: 12px 16px 10px;
+    border-bottom-width: 1px;
+  }
+
   .sections {
-    gap: 20px;
+    gap: 18px;
   }
 
   .view {
     font-size: 13.5px;
+  }
+
+  .view .num {
+    display: none;
   }
 
   .tabs {

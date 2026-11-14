@@ -75,10 +75,19 @@ struct DrawdownPeriod {
     std::size_t recovery{0};  // equals the window's length when not recovered
     bool recovered{false};
     double depth{0.0};
+    bool from_initial{false};  // fell from the initial capital, before any close of the window reached it
 };
 
 std::vector<DrawdownPeriod> worst_drawdowns(std::span<const double> equity, double initial, std::size_t count);
 std::vector<double> drawdown_series(std::span<const double> equity, double initial);
+
+// The bars a drawdown spans, as indices into the series: from its peak, which is the close before the window when it
+// fell from the initial capital, as CAGR counts, to its recovery, or to the window's last bar.
+struct DrawdownSpan {
+    std::size_t first{0};
+    std::size_t last{0};
+};
+DrawdownSpan drawdown_span(const DrawdownPeriod& period, std::size_t begin, std::size_t end);
 
 struct YearReturns {
     std::int64_t year{0};

@@ -101,6 +101,7 @@ std::vector<DrawdownPeriod> worst_drawdowns(std::span<const double> equity, doub
     std::vector<DrawdownPeriod> periods;
     double peak = initial;
     std::size_t peak_index = 0;
+    bool peak_is_initial = true;
     bool in_drawdown = false;
     DrawdownPeriod current;
     for (std::size_t i = 0; i < equity.size(); ++i) {
@@ -113,12 +114,13 @@ std::vector<DrawdownPeriod> worst_drawdowns(std::span<const double> equity, doub
             }
             peak = equity[i];
             peak_index = i;
+            peak_is_initial = false;
             continue;
         }
         const double depth = 1.0 - equity[i] / peak;
         if (!in_drawdown) {
             in_drawdown = true;
-            current = DrawdownPeriod{peak_index, i, equity.size(), false, depth};
+            current = DrawdownPeriod{peak_index, i, equity.size(), false, depth, peak_is_initial};
         } else if (depth > current.depth) {
             current.depth = depth;
             current.trough = i;
@@ -134,6 +136,13 @@ std::vector<DrawdownPeriod> worst_drawdowns(std::span<const double> equity, doub
         periods.resize(count);
     }
     return periods;
+}
+
+DrawdownSpan drawdown_span(const DrawdownPeriod& period, std::size_t begin, std::size_t end) {
+    DrawdownSpan span;
+    span.first = period.from_initial && begin > 0 ? begin - 1 : begin + period.peak;
+    span.last = period.recovered ? begin + period.recovery : end - 1;
+    return span;
 }
 
 Metrics compute_metrics(const BarSeries& bars,
@@ -180,11 +189,11 @@ Metrics compute_metrics(const BarSeries& bars,
     }
     m.calmar = ratio(m.cagr, m.max_drawdown);
     for (const DrawdownPeriod& period : worst_drawdowns(result.equity, initial, n)) {
-        const std::size_t length = period.recovery - period.peak;
+        const DrawdownSpan span = drawdown_span(period, result.begin, result.end);
+        const std::size_t length = span.last - span.first;
         if (length > m.longest_drawdown_bars) {
             m.longest_drawdown_bars = length;
-            const std::size_t last = std::min(result.begin + period.recovery, result.end - 1);
-            m.longest_drawdown_days = static_cast<double>(bars.time[last] - bars.time[result.begin + period.peak]) /
+            m.longest_drawdown_days = static_cast<double>(bars.time[span.last] - bars.time[span.first]) /
                                       static_cast<double>(seconds_per_day);
         }
     }

@@ -100,7 +100,10 @@ const std::vector<StrategyInfo>& strategy_catalog() {
          "Custom rules",
          "Custom",
          "Your own rules in the strategy language.",
-         {},
+         // The example's parameters. Custom rules may name any others; these are the defaults of the example.
+         {{"trend", "Trend SMA", 200, 20, 400, 1, true},
+          {"fast", "Fast EMA", 12, 2, 200, 1, true},
+          {"slow", "Slow EMA", 26, 5, 400, 1, true}},
          {},
          {"close > sma(close, $trend) and crossover(ema(close, $fast), ema(close, $slow))",
           "crossunder(ema(close, $fast), ema(close, $slow)) or close < sma(close, $trend)",

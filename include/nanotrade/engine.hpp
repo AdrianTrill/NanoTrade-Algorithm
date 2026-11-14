@@ -48,7 +48,7 @@ struct Fill {
     double price{0.0};   // after slippage
     double commission{0.0};
     double slippage{0.0};  // what the slippage cost
-    std::string reason;    // entry, exit, reverse, rebalance, stop_loss, take_profit, trailing_stop, end
+    std::string reason;    // entry, exit, reverse, rebalance, stop_loss, take_profit, trailing_stop, end, ruin
 };
 
 struct Trade {
@@ -62,8 +62,8 @@ struct Trade {
     double return_pct{0.0};   // pnl over the entry value at the largest size
     double mae{0.0};          // maximum adverse excursion, as a fraction of the entry price
     double mfe{0.0};          // maximum favorable excursion
-    std::string exit_reason;
-    bool open{false};  // still open when the backtest ended
+    std::string exit_reason;  // the closing fill's reason, or open: still held at the end, marked at the last close
+    bool open{false};         // still open when the backtest ended
 };
 
 struct BacktestResult {

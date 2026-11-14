@@ -177,6 +177,16 @@ private:
         return std::min(config_.max_leverage, config_.target_volatility / vol);
     }
 
+    // The shares that leave exactly `exposure` times the equity in the position once the fill's costs are paid: its
+    // slippage and commission, the fixed fee, and for a reversal the cost of closing the old side, each reckoned as a
+    // purchase at `price`. Sizing and the leverage cap both use it, so an order is trimmed only when the open gaps.
+    double shares_for(double exposure, double equity, double price, bool reversing) const {
+        const double cost_rate = (1.0 + slip_) * (1.0 + commission_rate_) - 1.0;
+        const double closing = reversing ? std::fabs(position_) * price * cost_rate : 0.0;
+        const double budget = std::max(0.0, equity - config_.commission_fixed - closing);
+        return exposure * budget / (price * (1.0 + exposure * cost_rate));
+    }
+
     void decide(std::size_t t, double equity) {
         int want = direction_[t];
         if (!config_.allow_short && want < 0) {
@@ -202,7 +212,7 @@ private:
             const double exposure = config_.sizing == Sizing::Percent ? config_.position_size : vol_exposure(t);
             double desired = 0.0;
             if (indicators::defined(exposure) && equity > 0.0) {
-                desired = want * exposure * equity / bars_.close[t];
+                desired = want * shares_for(exposure, equity, bars_.close[t], want != current && current != 0);
                 if (!config_.fractional_shares) {
                     desired = std::trunc(desired);
                 }
@@ -226,6 +236,10 @@ private:
     void fill_pending(std::size_t t) {
         has_pending_ = false;
         const double open = bars_.open[t];
+        if (position_ != 0.0) {
+            // The position lived through this open, and an order may close it here.
+            note_excursion(open, open);
+        }
         double target = pending_target_;
         // The order was sized at the last close; if the open gapped, it may no longer fit under the leverage cap.
         if (std::fabs(target) > std::fabs(position_) || sign(target) != sign(position_)) {
@@ -233,9 +247,8 @@ private:
             if (equity <= 0.0) {
                 target = 0.0;
             } else {
-                const double price = open * (1.0 + slip_);
-                double cap =
-                    (config_.max_leverage * equity - config_.commission_fixed) / (price * (1.0 + commission_rate_));
+                const bool reversing = position_ != 0.0 && sign(target) != sign(position_);
+                double cap = shares_for(config_.max_leverage, equity, open, reversing);
                 cap = std::max(0.0, config_.fractional_shares ? cap : std::floor(cap));
                 if (std::fabs(target) > cap) {
                     target = sign(target) * cap;

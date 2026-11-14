@@ -3,6 +3,7 @@
 #include "nanotrade/error.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <deque>
 #include <limits>
 #include <utility>
@@ -78,31 +79,36 @@ Series rolling_extreme(std::span<const double> x, std::size_t period, Better bet
 Series sma(std::span<const double> x, std::size_t period) {
     require_period(period, "sma");
     Series out(x.size(), undefined);
+    // A running sum, with the rounding error of every addition kept apart and added back (Neumaier's compensated
+    // summation): the mean stays within about an ulp of the window's exact one, however long the series runs.
     double sum = 0.0;
+    double compensation = 0.0;
+    const auto add = [&](double value) {
+        const double total = sum + value;
+        compensation += std::abs(sum) >= std::abs(value) ? (sum - total) + value : (value - total) + sum;
+        sum = total;
+    };
     std::size_t missing = 0;
+    std::size_t equal_run = 0;  // how many values in a row, ending here, are the same
     for (std::size_t i = 0; i < x.size(); ++i) {
         if (defined(x[i])) {
-            sum += x[i];
+            add(x[i]);
+            equal_run = i > 0 && x[i] == x[i - 1] ? equal_run + 1 : 1;
         } else {
             ++missing;
+            equal_run = 0;
         }
         if (i >= period) {
             if (defined(x[i - period])) {
-                sum -= x[i - period];
+                add(-x[i - period]);
             } else {
                 --missing;
             }
         }
         if (i + 1 >= period && missing == 0) {
-            // A running sum gathers rounding error with every bar; adding the window up afresh once per window keeps
-            // the error to that of one window, at no cost to the order of the work.
-            if ((i + 1) % period == 0) {
-                sum = 0.0;
-                for (std::size_t j = i + 1 - period; j <= i; ++j) {
-                    sum += x[j];
-                }
-            }
-            out[i] = sum / static_cast<double>(period);
+            // The mean of equal prices is that price exactly, so a close can't sit a rounding error above its own
+            // flat average.
+            out[i] = equal_run >= period ? x[i] : (sum + compensation) / static_cast<double>(period);
         }
     }
     return out;

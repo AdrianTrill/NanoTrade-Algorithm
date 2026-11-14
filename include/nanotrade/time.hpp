@@ -28,6 +28,9 @@ CivilDate civil_from_timestamp(Timestamp time) noexcept;
 // 2024-01-31 09:30, 2024-01-31T09:30:00Z, 2024-01-31T09:30:00+01:00, and Unix time in seconds or milliseconds.
 std::optional<Timestamp> parse_timestamp(std::string_view text);
 
+// Whether parse_timestamp reads the text as a whole day, such as 2024-01-31 or 20240131, rather than an instant.
+bool is_calendar_date(std::string_view text);
+
 std::string format_date(Timestamp time);       // 2024-01-31
 std::string format_timestamp(Timestamp time);  // 2024-01-31 at midnight, 2024-01-31 09:30 otherwise, seconds if any
 

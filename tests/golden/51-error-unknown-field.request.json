@@ -1,0 +1,7 @@
+{
+  "command": "backtest",
+  "data": "AAPL",
+  "config": {
+    "comission_bps": 1
+  }
+}

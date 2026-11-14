@@ -1,0 +1,1 @@
+{"ok":true,"command":"load","result":{"dataset":{"name":"tiny","title":"A tiny file","source":"uploaded","notes":"","bars":4,"first":"2024-01-02","last":"2024-01-15","intraday":false,"bars_per_year":84.28673076923077,"report":{"rows":4,"skipped":0,"repaired":0,"duplicates":0,"reversed":false,"sorted":false,"adjusted":"","date_order":"day first","warnings":[]}}}}

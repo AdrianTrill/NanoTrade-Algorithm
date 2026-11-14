@@ -1,13 +1,25 @@
 #include "nanotrade/time.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
+#include <string_view>
 
 namespace nanotrade {
 namespace {
 
 bool is_digit(char c) noexcept {
     return c >= '0' && c <= '9';
+}
+
+std::string_view trim_blanks(std::string_view text) {
+    while (!text.empty() && (text.front() == ' ' || text.front() == '\t')) {
+        text.remove_prefix(1);
+    }
+    while (!text.empty() && (text.back() == ' ' || text.back() == '\t')) {
+        text.remove_suffix(1);
+    }
+    return text;
 }
 
 // Reads exactly `count` digits at `position`, advancing it.
@@ -71,13 +83,18 @@ CivilDate civil_from_timestamp(Timestamp time) noexcept {
     return civil_from_days(days);
 }
 
+bool is_calendar_date(std::string_view text) {
+    text = trim_blanks(text);
+    if (!parse_timestamp(text)) {
+        return false;
+    }
+    // Eight digits are a compact date; more are Unix time. Otherwise a date is one without a time after it.
+    const bool all_digits = std::all_of(text.begin(), text.end(), is_digit);
+    return all_digits ? text.size() == 8 : text.find_first_of(" T") == std::string_view::npos;
+}
+
 std::optional<Timestamp> parse_timestamp(std::string_view text) {
-    while (!text.empty() && (text.front() == ' ' || text.front() == '\t')) {
-        text.remove_prefix(1);
-    }
-    while (!text.empty() && (text.back() == ' ' || text.back() == '\t')) {
-        text.remove_suffix(1);
-    }
+    text = trim_blanks(text);
     if (text.empty()) {
         return std::nullopt;
     }

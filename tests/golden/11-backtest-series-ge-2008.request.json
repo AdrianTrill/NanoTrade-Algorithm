@@ -1,0 +1,23 @@
+{
+  "command": "backtest",
+  "data": "GE",
+  "range": {
+    "from": "2008-01-01",
+    "to": "2008-12-31"
+  },
+  "strategy": {
+    "id": "sma_cross",
+    "params": {
+      "fast": 10,
+      "slow": 30
+    }
+  },
+  "config": {
+    "commission_bps": 1,
+    "slippage_bps": 2
+  },
+  "output": {
+    "series": true,
+    "fills": true
+  }
+}

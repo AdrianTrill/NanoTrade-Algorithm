@@ -1,0 +1,21 @@
+{
+  "command": "backtest",
+  "data": "CAT",
+  "range": {
+    "from": "1980-01-01",
+    "to": "1999-12-31"
+  },
+  "strategy": {
+    "id": "rsi_reversion"
+  },
+  "config": {
+    "sizing": "volatility",
+    "target_volatility": 0.12,
+    "max_leverage": 2,
+    "fractional_shares": true
+  },
+  "output": {
+    "series": false,
+    "trades": false
+  }
+}

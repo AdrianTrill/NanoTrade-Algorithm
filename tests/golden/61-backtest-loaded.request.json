@@ -1,0 +1,7 @@
+{
+  "command": "backtest",
+  "data": "tiny",
+  "strategy": {
+    "id": "buy_hold"
+  }
+}

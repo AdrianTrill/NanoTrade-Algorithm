@@ -1,0 +1,22 @@
+{
+  "command": "walkforward",
+  "data": "EBAY",
+  "strategy": {
+    "id": "momentum"
+  },
+  "walkforward": {
+    "x": {
+      "param": "lookback",
+      "from": 20,
+      "to": 200,
+      "step": 20
+    },
+    "in_sample_years": 3,
+    "out_of_sample_years": 1,
+    "anchored": true,
+    "metric": "sortino"
+  },
+  "output": {
+    "series": false
+  }
+}

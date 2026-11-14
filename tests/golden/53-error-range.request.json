@@ -1,0 +1,8 @@
+{
+  "command": "backtest",
+  "data": "EBAY",
+  "range": {
+    "from": "1990-01-01",
+    "to": "1998-09-24"
+  }
+}

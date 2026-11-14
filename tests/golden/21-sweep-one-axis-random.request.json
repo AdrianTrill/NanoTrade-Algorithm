@@ -1,0 +1,21 @@
+{
+  "command": "sweep",
+  "data": {
+    "synthetic": {
+      "seed": 3,
+      "bars": 2000
+    }
+  },
+  "strategy": {
+    "id": "momentum"
+  },
+  "sweep": {
+    "x": {
+      "param": "lookback",
+      "from": 10,
+      "to": 250,
+      "step": 10
+    },
+    "metric": "calmar"
+  }
+}

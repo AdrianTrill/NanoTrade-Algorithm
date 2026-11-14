@@ -46,6 +46,7 @@ jobs:
       - name: Build
         run: cmake --build build --config Release --parallel
 
+      # The golden responses among the tests must come out byte for byte on every platform.
       - name: Test
         run: ctest --test-dir build --build-config Release --output-on-failure
 

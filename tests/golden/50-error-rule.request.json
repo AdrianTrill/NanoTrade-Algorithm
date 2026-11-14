@@ -1,0 +1,8 @@
+{
+  "command": "backtest",
+  "data": "AAPL",
+  "strategy": {
+    "id": "custom",
+    "long_entry": "rsi(close, 14) < oversold"
+  }
+}

@@ -1,0 +1,1 @@
+{"ok":false,"error":{"message":"Fast SMA (60) must be less than Slow SMA (50)","field":"strategy.params.fast"}}

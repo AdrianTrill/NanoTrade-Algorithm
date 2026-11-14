@@ -1,6 +1,6 @@
 # NanoTrade
 
-NanoTrade is a backtesting engine in C++20. A strategy is a set of rules in a small language, such as `close > sma(close, 200) and rsi(close, 2) < 10`, read at each bar's close and traded at the next bar's open, so no rule can trade on prices it hasn't seen. The engine handles long and short positions, sizing by a share of equity or by a volatility target, stop losses, take profits, trailing stops, commissions, slippage, and the cost of borrowing for shorts, and reports more than thirty measures of the result against buying and holding. Then it asks whether the result is real: it searches parameters on every core and measures how much of the winner's edge luck explains, tests walk-forward, and resamples the returns to show what luck could have done. It is tested on 68,292 daily bars of seven US stocks from 1962 to 2013, bundled with it, on Linux, macOS, and Windows.
+NanoTrade is a backtesting engine in C++20. A strategy is a set of rules in a small language, such as `close > sma(close, 200) and rsi(close, 2) < 10`, read at each bar's close and traded at the next bar's open, so no rule can trade on prices it hasn't seen. The engine handles long and short positions, sizing by a share of equity or by a volatility target, stop losses, take profits, trailing stops, commissions, slippage, and the cost of borrowing for shorts, and reports more than thirty measures of the result against buying and holding. Then it asks whether the result is real: it searches parameters on every core and measures how much of the winner's edge luck explains, tests walk-forward, and resamples the returns to show what luck could have done. Everything it does is one JSON API, answered from the command line or from its own HTTP server, with the same bytes on every platform. It is tested on 68,292 daily bars of seven US stocks from 1962 to 2013, bundled with it, on Linux, macOS, and Windows.
 
 ## The rule language
 
@@ -96,6 +96,75 @@ const nanotrade::SweepResult search = nanotrade::run_sweep(bars, cache, crossove
 // search.overfit.deflated_sharpe, search.overfit.pbo, and every trial's metrics in search.trials
 ```
 
+
+## Command line
+
+```bash
+nanotrade run --data AAPL --strategy rsi2_pullback --commission 1 --slippage 2
+nanotrade run --data F --long "rsi(close, 2) < 10 and close > sma(close, 200)" --long-exit "close > sma(close, 5)"
+nanotrade sweep --data GE --x fast=10:200:10 --y slow=20:400:20
+nanotrade walkforward --data CAT --strategy rsi_reversion --x period=5:25:5 --is-years 5 --oos-years 2
+nanotrade montecarlo --data BA --strategy momentum --paths 2000
+nanotrade serve                   # the API and the lab at http://127.0.0.1:8080
+```
+
+A sweep ends with its verdict:
+
+```text
+GE (General Electric), 1962-01-02 to 2013-12-31, 13,090 bars
+Swept fast and slow: 400 combinations, 300 valid, ranked by sharpe
+  100 couldn't run, such as: Fast SMA (20) must be less than Slow SMA (20)
+
+Top combinations
+  fast     20  slow    240   Sharpe   0.53   CAGR    8.3%   max drawdown   39.1%   trades 39
+  fast     20  slow    220   Sharpe   0.53   CAGR    8.1%   max drawdown   43.0%   trades 45
+  fast    180  slow    400   Sharpe   0.52   CAGR    8.5%   max drawdown   42.9%   trades 17
+  ...
+
+Overfitting
+  Deflated Sharpe ratio  99.8%  (the chance the best Sharpe of 0.53 beats the 0.13 that luck alone would give the best of 300 trials)
+  Probability of backtest overfitting  80.3%  (12,870 splits of 16 blocks: how often the in-sample winner finished in the bottom half out of sample)
+  In-sample winner lost money out of sample  0.2% of splits
+```
+
+`nanotrade --help` lists every option: costs, sizing, stops, shorts, date ranges, random markets, CSV files, and `--json` for the raw response.
+
+## One JSON API
+
+The command line, the server, and the browser all send the same JSON requests to one function, `nanotrade::api::handle`, and get the same responses.
+
+| Command | What it does |
+| --- | --- |
+| `version` | The engine's version |
+| `catalog` | The strategies with their parameters, ranges, and rules, and the rule language's functions |
+| `datasets` | The bundled datasets, with their date ranges and notes |
+| `load` | Adds a CSV file's text as a named dataset |
+| `bars` | A dataset's bars over a date range |
+| `backtest` | A backtest: its measures against buying and holding, equity and indicator series, trades, monthly and yearly returns, and worst drawdowns |
+| `sweep` | Every combination of one or two parameters, the ten best, and the overfitting measures |
+| `walkforward` | A walk-forward test, window by window, and its chained equity |
+| `montecarlo` | A backtest's returns resampled into bands and distributions |
+
+```json
+{"command": "backtest", "data": "AAPL", "range": {"from": "2003-01-01"},
+ "strategy": {"id": "custom", "params": {"trend": 200},
+              "long_entry": "close > sma(close, $trend) and rsi(close, 2) < 10", "long_exit": "close > sma(close, 5)"},
+ "config": {"commission_bps": 1, "slippage_bps": 2, "stop_loss": 0.08}}
+```
+
+A request is checked before anything runs. An error names the field at fault, suggests the name that was meant, and points into a rule:
+
+```json
+{"ok": false, "error": {"message": "unknown function 'smaa'; did you mean sma?", "field": "strategy.long_entry", "position": 8, "length": 4}}
+{"ok": false, "error": {"message": "unknown field config.comission_bps; did you mean commission_bps?", "field": "config.comission_bps"}}
+```
+
+**The same request gives the same bytes everywhere.** The engine computes exp, log, and the normal quantile itself instead of trusting each platform's math library, compiles without floating-point contraction, draws random numbers with its own generator and distributions, and writes each number as the shortest decimal that reads back exactly. [`tests/golden/`](tests/golden) holds 23 requests with their responses, and CI requires every one byte for byte with GCC, Clang, Apple Clang, and MSVC.
+
+## The server
+
+`nanotrade serve` answers `POST /api` with the JSON API, `GET /api/health` with the engine's version, and anything else from the lab's files. It is a small HTTP/1.1 server on the operating system's own sockets (POSIX or Winsock) with a pool of threads, so a sweep from the page runs natively on every core. It caps the size of headers and bodies, times out slow clients, answers 503 when its queue is full, and serves files only from inside the site's directory: no `..`, no backslashes or colons, and no symbolic links that lead out.
+
 ## Data
 
 [`data/`](data/README.md) holds daily bars of Apple, Boeing, Caterpillar, Dell, eBay, Ford, and General Electric from the Quandl WIKI dataset, which is in the public domain, adjusted for splits and dividends. [`tools/prepare_data.py`](tools/prepare_data.py) downloads them at a pinned commit, and CI requires a fresh download to reproduce them byte for byte.
@@ -108,8 +177,9 @@ Requirements: CMake 3.21+ and a C++20 compiler (GCC 11+, Clang 14+, Apple Clang 
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --parallel
 ctest --test-dir build --output-on-failure
+./build/nanotrade run --data AAPL --strategy rsi2_pullback
 ```
 
-The tests work small cases by hand, checking every share, price, commission, and P&L of fills, stops, trailing stops, shorts, reversals, and sizing. They check each built-in strategy bar by bar against an independent version of it, on three stocks and two random markets; the indicators and the metrics against their definitions; and the CSV loader on each source's format and every bundled file. The research tests check that a sweep's cells equal separate backtests and come out bit for bit the same on one thread or eight, that the probability of overfitting is near one half on pure noise and small for a real edge among noise, that walk-forward windows tile the range and choose without peeking, and that resampling and random markets repeat exactly for a seed. On all seven stocks, under random signals and every combination of sizing, shorting, costs, and stops, four properties hold: the books balance (the final equity is the initial capital plus every trade's P&L), nothing looks ahead (rewriting every price after a bar changes nothing up to it), a run repeats exactly, and no fill takes a position past the leverage cap. CI runs them with GCC, Clang, Apple Clang, and MSVC, with warnings as errors, and under AddressSanitizer, UndefinedBehaviorSanitizer, and ThreadSanitizer.
+The tests work small cases by hand, checking every share, price, commission, and P&L of fills, stops, trailing stops, shorts, reversals, and sizing. They check each built-in strategy bar by bar against an independent version of it, on three stocks and two random markets; the indicators and the metrics against their definitions; and the CSV loader on each source's format and every bundled file. The research tests check that a sweep's cells equal separate backtests and come out bit for bit the same on one thread or eight, that the probability of overfitting is near one half on pure noise and small for a real edge among noise, that walk-forward windows tile the range and choose without peeking, and that resampling and random markets repeat exactly for a seed. The API's tests check every command and every way a request can be wrong, the server's tests check its parsing, limits, and refusals with real sockets, and the golden responses and the command line run end to end. On all seven stocks, under random signals and every combination of sizing, shorting, costs, and stops, four properties hold: the books balance (the final equity is the initial capital plus every trade's P&L), nothing looks ahead (rewriting every price after a bar changes nothing up to it), a run repeats exactly, and no fill takes a position past the leverage cap. CI runs them with GCC, Clang, Apple Clang, and MSVC, with warnings as errors, and under AddressSanitizer, UndefinedBehaviorSanitizer, and ThreadSanitizer.
 
 Released under the [MIT License](LICENSE).

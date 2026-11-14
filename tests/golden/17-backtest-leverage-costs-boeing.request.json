@@ -1,0 +1,29 @@
+{
+  "command": "backtest",
+  "data": "BA",
+  "range": {
+    "from": "1990-01-01"
+  },
+  "strategy": {
+    "id": "ema_cross",
+    "params": {
+      "fast": 20,
+      "slow": 100
+    }
+  },
+  "config": {
+    "allow_short": true,
+    "sizing": "volatility",
+    "target_volatility": 0.25,
+    "max_leverage": 2,
+    "rebalance_threshold": 0.2,
+    "commission_bps": 3,
+    "commission_fixed": 1,
+    "slippage_bps": 4,
+    "borrow_rate": 0.03,
+    "trailing_stop": 0.2
+  },
+  "output": {
+    "series": false
+  }
+}

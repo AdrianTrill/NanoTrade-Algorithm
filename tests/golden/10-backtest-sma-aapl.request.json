@@ -1,0 +1,13 @@
+{
+  "command": "backtest",
+  "data": "AAPL",
+  "range": {
+    "from": "1990-01-01"
+  },
+  "strategy": {
+    "id": "sma_cross"
+  },
+  "output": {
+    "series": false
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "command": "backtest",
+  "data": "AAPL",
+  "strategy": {
+    "id": "sma_cross",
+    "params": {
+      "fast": 60
+    }
+  }
+}

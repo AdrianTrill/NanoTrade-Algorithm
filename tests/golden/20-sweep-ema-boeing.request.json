@@ -1,0 +1,24 @@
+{
+  "command": "sweep",
+  "data": "BA",
+  "range": {
+    "from": "1990-01-01"
+  },
+  "strategy": {
+    "id": "ema_cross"
+  },
+  "sweep": {
+    "x": {
+      "param": "fast",
+      "from": 5,
+      "to": 60,
+      "step": 5
+    },
+    "y": {
+      "param": "slow",
+      "from": 20,
+      "to": 200,
+      "step": 20
+    }
+  }
+}

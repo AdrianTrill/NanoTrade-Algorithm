@@ -1,0 +1,25 @@
+{
+  "command": "backtest",
+  "data": "F",
+  "range": {
+    "from": "1985-01-01"
+  },
+  "strategy": {
+    "id": "donchian",
+    "params": {
+      "entry": 55,
+      "exit": 20
+    }
+  },
+  "config": {
+    "allow_short": true,
+    "stop_loss": 0.1,
+    "trailing_stop": 0.15,
+    "commission_bps": 5,
+    "slippage_bps": 5,
+    "borrow_rate": 0.02
+  },
+  "output": {
+    "series": false
+  }
+}

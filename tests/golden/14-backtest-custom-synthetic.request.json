@@ -1,0 +1,23 @@
+{
+  "command": "backtest",
+  "data": {
+    "synthetic": {
+      "seed": 9,
+      "bars": 1500
+    }
+  },
+  "strategy": {
+    "id": "custom",
+    "long_entry": "crossover(macd(close, 12, 26), macd_signal(close, 12, 26, 9)) and zscore(close, 20) < $z",
+    "long_exit": "crossunder(macd(close, 12, 26), macd_signal(close, 12, 26, 9)) or close < lowest(low, 10)[1]",
+    "params": {
+      "z": 1
+    }
+  },
+  "config": {
+    "take_profit": 0.2
+  },
+  "output": {
+    "series": false
+  }
+}

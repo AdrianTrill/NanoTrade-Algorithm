@@ -1,0 +1,12 @@
+{
+  "command": "montecarlo",
+  "data": "DELL",
+  "strategy": {
+    "id": "momentum"
+  },
+  "montecarlo": {
+    "paths": 200,
+    "block": 10,
+    "seed": 3
+  }
+}

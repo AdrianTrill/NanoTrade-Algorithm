@@ -3,7 +3,8 @@
 //   emcmake cmake -S . -B build-wasm && cmake --build build-wasm     (the site, in build-wasm/site)
 //   node web/capture.mjs build-wasm/site
 //
-// Writes docs/assets/{backtest,rules,optimize,walkforward,montecarlo}.png, docs/assets/demo.gif, and web/social.png
+// Writes docs/assets/{backtest,rules,optimize,walkforward,montecarlo,phone,phone-settings}.png, docs/assets/demo.gif, and
+// web/social.png
 // (rebuild the site to publish it). The page runs its engine in WebAssembly, as on GitHub Pages. Needs Chrome, and
 // ffmpeg for the GIF.
 import { execFileSync } from 'node:child_process';
@@ -29,11 +30,11 @@ const browser = await puppeteer.launch({ executablePath: chrome, headless: true,
 const wait = (ms) => new Promise((done) => setTimeout(done, ms));
 const sweep = 'sx_=fast:10:200:10&sy_=slow:20:400:20';
 
-async function open(query, { theme = 'light', width = 1600, height = 1200, scale = 1.25 } = {}) {
+async function open(query, { theme = 'light', width = 1600, height = 1200, scale = 1.25, mobile = false } = {}) {
   const context = await browser.createBrowserContext();
   const page = await context.newPage();
   await page.evaluateOnNewDocument((edition) => localStorage.setItem('nanotrade-theme', edition), theme);
-  await page.setViewport({ width, height, deviceScaleFactor: scale });
+  await page.setViewport({ width, height, deviceScaleFactor: scale, isMobile: mobile, hasTouch: mobile });
   await page.goto(`${url}${query}`, { waitUntil: 'load' });
   await page.waitForFunction(() => document.body.dataset.ready === 'true' || document.body.dataset.error, { timeout: 90_000 });
   if (await page.evaluate(() => document.body.dataset.error)) throw new Error(`${query}: the lab didn't start`);
@@ -120,6 +121,15 @@ await research(page, 'monte');
 await page.screenshot({ path: join(assets, 'montecarlo.png') });
 await page.browserContext().close();
 console.log('montecarlo.png');
+
+// A phone: the result first, then the settings in a sheet over it, with the headline figures still in view.
+page = await open('?d=AAPL&from=2003-01-01&p=fast:20,slow:100&cb=1&sb=2', { width: 390, height: 844, scale: 2, mobile: true });
+await page.screenshot({ path: join(assets, 'phone.png') });
+await page.tap('#spec-toggle');
+await wait(600);
+await page.screenshot({ path: join(assets, 'phone-settings.png') });
+await page.browserContext().close();
+console.log('phone.png, phone-settings.png');
 
 // The link-preview card: the parameter map of a search, its verdict, and the lab's own timings.
 page = await open(`?view=optimize&d=GE&from=&${sweep}`, { width: 1400, height: 900, scale: 2 });

@@ -38,7 +38,7 @@ NanoTrade is a backtesting engine for trading strategies, in C++20 with no depen
 
 ## Try it
 
-**[Open the lab](https://adriantrill.github.io/NanoTrade-Algorithm/).** It opens on a backtest of the SMA crossover on Apple. Pick a market, or step through them with <kbd>[</kbd> and <kbd>]</kbd>; choose a strategy and drag its parameters, or press <kbd>E</kbd> to edit its rules. <kbd>2</kbd>, <kbd>3</kbd>, and <kbd>4</kbd> open the research views and <kbd>Enter</kbd> runs them. <kbd>S</kbd> copies a link to exactly what you see, <kbd>T</kbd> switches between the paper and night editions, and <kbd>?</kbd> lists every key. The engine runs in your tab, in WebAssembly, so nothing you do leaves the page, including a CSV of your own (<kbd>O</kbd>).
+**[Open the lab](https://adriantrill.github.io/NanoTrade-Algorithm/).** It opens on a backtest of the SMA crossover on Apple. Pick a market, or step through them with <kbd>[</kbd> and <kbd>]</kbd>; choose a strategy and drag its parameters, or press <kbd>E</kbd> to edit its rules. <kbd>2</kbd>, <kbd>3</kbd>, and <kbd>4</kbd> open the research views, which run as they open; <kbd>Enter</kbd> runs one again. <kbd>S</kbd> copies a link to exactly what you see, <kbd>T</kbd> switches between the paper and night editions (the first visit follows your system), and <kbd>?</kbd> lists every key. On a phone, **Settings** opens them in a sheet over the result. The engine runs in your tab, in WebAssembly, so nothing you do leaves the page, including a CSV of your own (<kbd>O</kbd>).
 
 To run it natively:
 
@@ -58,12 +58,18 @@ The lab reads like a research report rather than a dashboard. Each run gets a he
 
 - **Backtest.** Six figures against buying and holding, and one chart in four panes on a shared time axis: the price with the strategy's indicators and trades, the position held, equity on a log scale, and drawdowns. It zooms and pans, and shows candles when zoomed in. Below it are the monthly returns, every measure, the worst drawdowns, and the trades.
 - **Optimize.** The parameter map colors each combination by its score, on a scale that diverges at zero; hover a cell for its numbers, or click it to backtest it. Beside it, *Is the winner real?* gives the deflated Sharpe ratio, the probability of backtest overfitting, the distribution of the winner's rank out of sample, and a verdict in words.
+- **Research that keeps up.** Each research view runs as it opens, and again when the settings change, as long as the run is small: up to about ten million bars backtested, a second or two in the browser. A larger run waits for its button, and meanwhile the old result is dimmed and marked out of date, so a figure never describes settings it didn't use.
 - **Walk-forward** chains the out-of-sample years into one equity curve, shaded window by window, and lists each window's choice.
 - **Monte Carlo** draws the bands of a thousand resampled paths around the backtest, and the distributions of their returns, drawdowns, and Sharpe ratios.
 - **A link holds the run.** The address keeps the market, dates, strategy, rules, parameters, costs, and research settings, so a link reopens the same run.
+- **Any screen.** On a phone or a tablet the result comes first, and **Settings** slides the controls over it: from the left on a tablet, and from the bottom on a phone, leaving the headline figures in view so each change shows as it's made. Touch targets grow for fingers, the tabs follow the keyboard's arrow keys, and while the engine downloads, placeholders show where everything will be.
 
 <p align="center">
   <img src="docs/assets/optimize.png" width="857" alt="The optimize view in the night edition: a search of 300 pairs of SMA windows on General Electric from 1962 to 2013, drawn as a parameter map of Sharpe ratios, beside the box Is the winner real?, with a deflated Sharpe ratio above 99%, a probability of backtest overfitting near 80%, the distribution of the winner's out-of-sample rank, and the verdict that the strategy family beats luck but its best parameters don't persist">
+</p>
+
+<p align="center">
+  <img src="docs/assets/phone.png" width="260" alt="The lab on a phone: the backtest's headline, its sentence against buying and holding, and the six figures, first on the screen, with a Settings button in the masthead"> <img src="docs/assets/phone-settings.png" width="260" alt="The same phone with Settings open: a sheet with the market, dates, and strategy rises from the bottom, while the total return, annual return, Sharpe ratio, and worst drawdown stay in view above it">
 </p>
 
 <p align="center">
@@ -404,7 +410,7 @@ python3 tools/study.py build/nanotrade --check                # the README's stu
 | CI | Format | clang-format on every C++ file |
 | CI | Data | Downloads the bars again at the pinned commit; every file must match its SHA-256 |
 | CI | Study | Runs the README's study again; every number must match |
-| Pages | Browser build | Builds the engine with Emscripten, checks the golden responses in WebAssembly, then drives the lab in headless Chrome, in WebAssembly and against the native server: backtests, sliders, markets, a rule with a mistake and its fix, a search, a walk-forward test, resampling, a CSV, the keys, the editions, a link, a phone's screen, and no console errors or failed requests. Main is then deployed |
+| Pages | Browser build | Builds the engine with Emscripten, checks the golden responses in WebAssembly, then drives the lab in headless Chrome, in WebAssembly and against the native server: the placeholders while the engine starts and a failed start, backtests, sliders, markets, a rule with a mistake and its fix, each research view running as it opens, a sweep marked out of date by a change and run again, a CSV, the keys, the skip link and arrow keys, the editions, a link, and the settings sheet on a phone and a tablet, with no console errors or failed requests. Main is then deployed |
 
 [`web/capture.mjs`](web/capture.mjs) regenerates this README's images, the demo, and the link preview from the built site.
 

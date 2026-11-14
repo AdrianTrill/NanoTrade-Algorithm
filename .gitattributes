@@ -1,0 +1,6 @@
+# The bundled data is checked against the SHA-256 hashes in data/manifest.json, and golden API responses are compared
+# byte for byte, on every platform: text keeps LF line endings everywhere.
+* text=auto eol=lf
+*.png binary
+*.gif binary
+*.webp binary

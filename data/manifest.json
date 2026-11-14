@@ -1,0 +1,85 @@
+{
+  "source": "Quandl WIKI Prices, in the public domain, as published by MarketData.jl",
+  "url": "https://github.com/JuliaQuant/MarketData.jl/tree/bd65d8488fc8ede7a12649a64266783d9abff4af/data",
+  "commit": "bd65d8488fc8ede7a12649a64266783d9abff4af",
+  "adjusted": "splits and dividends",
+  "datasets": [
+    {
+      "symbol": "AAPL",
+      "name": "Apple",
+      "file": "AAPL.csv",
+      "bars": 8336,
+      "first": "1980-12-12",
+      "last": "2013-12-31",
+      "bytes": 425212,
+      "sha256": "d430b07a77e3d9e3b0a4733a223bc9385d6397ba72b0e42d674e37d83ad0513c",
+      "notes": "Includes the 52% fall of 2000-09-29, after a profit warning: a real move, not an error."
+    },
+    {
+      "symbol": "BA",
+      "name": "Boeing",
+      "file": "BA.csv",
+      "bars": 13090,
+      "first": "1962-01-02",
+      "last": "2013-12-31",
+      "bytes": 670953,
+      "sha256": "d1ed6fb3f7da962965188a2698dfda722198373b5efb98e6603a9bbe8815864a",
+      "notes": ""
+    },
+    {
+      "symbol": "CAT",
+      "name": "Caterpillar",
+      "file": "CAT.csv",
+      "bars": 13090,
+      "first": "1962-01-02",
+      "last": "2013-12-31",
+      "bytes": 657091,
+      "sha256": "e88a82d560cbd2e6cdee72fb00f9465259185c3cb533361220bea053a54e682f",
+      "notes": "The source misses the 2-for-1 split of 1964-07-06; the bars before it are adjusted here."
+    },
+    {
+      "symbol": "DELL",
+      "name": "Dell",
+      "file": "DELL.csv",
+      "bars": 6353,
+      "first": "1988-08-17",
+      "last": "2013-10-29",
+      "bytes": 302325,
+      "sha256": "bb102c5a1ffdf6f3d4d75f8f7cbe2b1ab02ac72b94c0323d38af79c2d878e135",
+      "notes": "Ends on 2013-10-29, when Dell was taken private."
+    },
+    {
+      "symbol": "EBAY",
+      "name": "eBay",
+      "file": "EBAY.csv",
+      "bars": 3842,
+      "first": "1998-09-24",
+      "last": "2013-12-31",
+      "bytes": 172858,
+      "sha256": "fde03487bcfdef890268e65d9b47ad9545046c7d0c0ae57b95bda5f85e3518df",
+      "notes": "Starts the day it listed, 1998-09-24."
+    },
+    {
+      "symbol": "F",
+      "name": "Ford",
+      "file": "F.csv",
+      "bars": 10491,
+      "first": "1972-06-01",
+      "last": "2013-12-31",
+      "bytes": 534453,
+      "sha256": "6071864bfbb18387c196afba50a4bebeeaaae285baba8fb94da2c89cc3b8a6e5",
+      "notes": "The 32% fall of 1998-04-08 is the spin-off of Associates First Capital, which the source doesn't adjust for: shareholders received the shares, so it is not a loss."
+    },
+    {
+      "symbol": "GE",
+      "name": "General Electric",
+      "file": "GE.csv",
+      "bars": 13090,
+      "first": "1962-01-02",
+      "last": "2013-12-31",
+      "bytes": 690014,
+      "sha256": "a7967847a409cdafbedf23d1397de4cad1b12ecc80dc4f42ad082f354df2c13d",
+      "notes": ""
+    }
+  ]
+}

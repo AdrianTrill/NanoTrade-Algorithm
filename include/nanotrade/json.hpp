@@ -31,6 +31,8 @@ public:
 
     static Json array();
     static Json object();
+    // An object with these keys and values; throws std::logic_error unless they are as many, with no key twice.
+    static Json object(std::vector<std::string> keys, std::vector<Json> values);
 
     // Throws nanotrade::Error, whose position() is the byte offset of the problem.
     static Json parse(std::string_view text);
@@ -78,6 +80,7 @@ public:
 
     const Json* find(std::string_view key) const noexcept;  // nullptr unless an object with that key
 
+    // Both throw std::logic_error on any other type: push needs an array, and set an object.
     Json& push(Json value);                  // appends to an array
     Json& set(std::string key, Json value);  // sets an object's key, replacing any value it had
 

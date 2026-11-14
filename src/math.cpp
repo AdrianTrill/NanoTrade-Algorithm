@@ -80,14 +80,34 @@ double log(double x) noexcept {
 }
 
 double pow(double base, double exponent) noexcept {
+    // The special cases are IEEE 754's.
     if (exponent == 0.0 || base == 1.0) {
         return 1.0;
     }
-    if (std::isnan(base) || std::isnan(exponent) || base < 0.0) {
+    if (std::isnan(base) || std::isnan(exponent)) {
         return nan;
     }
-    if (base == 0.0) {
-        return exponent > 0.0 ? 0.0 : infinity;
+    if (std::isinf(exponent)) {
+        const double magnitude = std::fabs(base);
+        if (magnitude == 1.0) {
+            return 1.0;
+        }
+        return (magnitude < 1.0) == (exponent > 0.0) ? 0.0 : infinity;
+    }
+    const bool integer = std::floor(exponent) == exponent;
+    const bool odd = integer && std::fmod(exponent, 2.0) != 0.0;
+    if (base == 0.0 || std::isinf(base)) {
+        // Infinite for infinity to a positive power or zero to a negative one, and zero otherwise; an odd power keeps
+        // the base's sign.
+        const double magnitude = std::isinf(base) == (exponent > 0.0) ? infinity : 0.0;
+        return odd && std::signbit(base) ? -magnitude : magnitude;
+    }
+    if (base < 0.0) {
+        if (!integer) {
+            return nan;
+        }
+        const double magnitude = pow(-base, exponent);
+        return odd ? -magnitude : magnitude;
     }
     return exp(exponent * log(base));
 }
@@ -172,6 +192,19 @@ double normal_quantile(double p) noexcept {
         const double r = q * q;
         x = (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q /
             (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1.0);
+    }
+    // Below -37 normal_cdf has underflowed to zero, but log Phi hasn't: Newton's method refines x against log Phi,
+    // from its asymptotic series, Phi(x) = phi(x) / -x (1 - 1/x^2 + 3/x^4 - 15/x^6 + ...), which there is as good as
+    // a double. (p < 1 keeps x below 8.3, so the upper tail never gets this far.)
+    if (x < -37.0) {
+        const double log_p = log(p);
+        for (int i = 0; i < 3; ++i) {
+            const double r = 1.0 / (x * x);
+            const double series = 1.0 - r * (1.0 - r * (3.0 - r * (15.0 - r * (105.0 - r * 945.0))));
+            const double log_cdf = -0.5 * x * x - log(-x) - 0.91893853320467274178 + log(series);
+            x -= (log_cdf - log_p) / (-x - 1.0 / x);
+        }
+        return x;
     }
     const double error = normal_cdf(x) - p;
     const double u = error * 2.50662827463100050242 * exp(x * x / 2.0);

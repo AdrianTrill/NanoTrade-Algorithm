@@ -10,7 +10,8 @@ namespace nanotrade::math {
 
 double exp(double x) noexcept;
 double log(double x) noexcept;
-double pow(double base, double exponent) noexcept;  // for base >= 0; NaN otherwise
+// IEEE 754's special cases, and otherwise exp(exponent * log(base)): within 2 + 3 |exponent * log(base)| ulps.
+double pow(double base, double exponent) noexcept;
 
 double normal_cdf(double x) noexcept;       // the standard normal distribution function, to about 1e-15
 double normal_quantile(double p) noexcept;  // its inverse, for 0 < p < 1

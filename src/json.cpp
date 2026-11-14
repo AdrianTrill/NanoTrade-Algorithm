@@ -4,7 +4,13 @@
 #include "nanotrade/text.hpp"
 
 #include <cstdint>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
+#include <vector>
 
 namespace nanotrade {
 namespace {
@@ -82,10 +88,14 @@ private:
 
     Json parse_object(std::size_t depth) {
         ++position_;
-        Json object = Json::object();
+        std::vector<std::string> keys;
+        std::vector<Json> values;
+        // Where each key is, so an object of n keys parses in linear time. As in JavaScript, a repeated key's last
+        // value wins, in the key's first place.
+        std::unordered_map<std::string, std::size_t> index;
         skip_space();
         if (consume("}")) {
-            return object;
+            return Json::object();
         }
         for (;;) {
             skip_space();
@@ -98,13 +108,20 @@ private:
                 fail("expected ':' after a key");
             }
             skip_space();
-            object.set(std::move(key), parse_value(depth + 1));
+            Json value = parse_value(depth + 1);
+            const auto [found, added] = index.try_emplace(key, keys.size());
+            if (added) {
+                keys.push_back(std::move(key));
+                values.push_back(std::move(value));
+            } else {
+                values[found->second] = std::move(value);
+            }
             skip_space();
             if (consume(",")) {
                 continue;
             }
             if (consume("}")) {
-                return object;
+                return Json::object(std::move(keys), std::move(values));
             }
             fail("expected ',' or '}' in an object");
         }
@@ -373,12 +390,36 @@ const Json* Json::find(std::string_view key) const noexcept {
     return nullptr;
 }
 
+Json Json::object(std::vector<std::string> keys, std::vector<Json> values) {
+    if (keys.size() != values.size()) {
+        throw std::logic_error("an object needs one value for each key");
+    }
+    std::unordered_set<std::string_view> seen;
+    seen.reserve(keys.size());
+    for (const std::string& key : keys) {
+        if (!seen.insert(key).second) {
+            throw std::logic_error("an object can't have the key '" + key + "' twice");
+        }
+    }
+    Json object;
+    object.type_ = Type::Object;
+    object.keys_ = std::move(keys);
+    object.items_ = std::move(values);
+    return object;
+}
+
 Json& Json::push(Json value) {
+    if (type_ != Type::Array) {
+        throw std::logic_error("push needs an array");
+    }
     items_.push_back(std::move(value));
     return *this;
 }
 
 Json& Json::set(std::string key, Json value) {
+    if (type_ != Type::Object) {
+        throw std::logic_error("set needs an object");
+    }
     for (std::size_t i = 0; i < keys_.size(); ++i) {
         if (keys_[i] == key) {
             items_[i] = std::move(value);

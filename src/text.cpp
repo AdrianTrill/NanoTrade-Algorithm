@@ -5,9 +5,44 @@
 #include <charconv>
 #include <cmath>
 #include <cstdlib>
+#include <new>
+#include <string>
 #include <system_error>
 
 namespace nanotrade::text {
+
+#if defined(__cpp_lib_to_chars) && __cpp_lib_to_chars >= 201611L
+namespace {
+
+// For a decimal number a double can't hold: whether it is too small rather than too large, which is when its first
+// nonzero digit stands for a negative power of ten.
+bool too_small(std::string_view body) noexcept {
+    const std::size_t e = body.find_first_of("eE");
+    const std::string_view mantissa = body.substr(0, e);
+    const std::size_t point = std::min(mantissa.find('.'), mantissa.size());
+    const std::size_t first = mantissa.find_first_of("123456789");
+    if (first == std::string_view::npos) {
+        return true;
+    }
+    long long power = first < point ? static_cast<long long>(point - first) - 1
+                                    : static_cast<long long>(point) - static_cast<long long>(first);
+    if (e != std::string_view::npos) {
+        std::size_t i = e + 1;
+        const bool negative = i < body.size() && body[i] == '-';
+        if (i < body.size() && (body[i] == '+' || body[i] == '-')) {
+            ++i;
+        }
+        long long exponent = 0;
+        for (; i < body.size(); ++i) {
+            exponent = std::min(exponent * 10 + (body[i] - '0'), 1'000'000LL);
+        }
+        power += negative ? -exponent : exponent;
+    }
+    return power < 0;
+}
+
+}  // namespace
+#endif
 
 std::optional<double> parse_number(std::string_view text) noexcept {
     std::size_t position = 0;
@@ -43,26 +78,30 @@ std::optional<double> parse_number(std::string_view text) noexcept {
         return std::nullopt;
     }
 
+    // Both parsers round correctly, and agree at the ends of the range: a number too small for a double is zero, and
+    // one too large is an error, whatever the platform.
     double value = 0.0;
 #if defined(__cpp_lib_to_chars) && __cpp_lib_to_chars >= 201611L
     const auto [end, error] = std::from_chars(body.data(), body.data() + body.size(), value);
     if (error == std::errc::result_out_of_range) {
-        return std::nullopt;
-    }
-    if (error != std::errc{} || end != body.data() + body.size()) {
+        if (!too_small(body)) {
+            return std::nullopt;
+        }
+        value = 0.0;
+    } else if (error != std::errc{} || end != body.data() + body.size()) {
         return std::nullopt;
     }
 #else
     // Older standard libraries lack floating-point from_chars; their strtod is correctly rounded, and the grammar
     // check above leaves nothing for the locale to change.
-    std::array<char, 512> buffer{};
-    if (body.size() >= buffer.size()) {
-        return std::nullopt;
-    }
-    body.copy(buffer.data(), body.size());
-    char* end = nullptr;
-    value = std::strtod(buffer.data(), &end);
-    if (end != buffer.data() + body.size() || std::isinf(value)) {
+    try {
+        const std::string copy(body);
+        char* end = nullptr;
+        value = std::strtod(copy.c_str(), &end);
+        if (end != copy.c_str() + copy.size() || std::isinf(value)) {
+            return std::nullopt;
+        }
+    } catch (const std::bad_alloc&) {
         return std::nullopt;
     }
 #endif
@@ -78,11 +117,17 @@ void append_number(std::string& out, double value, int digits) {
         out.push_back('0');
         return;
     }
-    std::array<char, 64> buffer{};
-    const auto result =
+    // Seventeen digits tell any two doubles apart; beyond them come the exact binary expansion's digits, up to 100,
+    // which with the sign, point, and exponent fit the buffer.
+    digits = std::min(digits, 100);
+    std::array<char, 128> buffer{};
+    auto result =
         digits > 0
             ? std::to_chars(buffer.data(), buffer.data() + buffer.size(), value, std::chars_format::general, digits)
             : std::to_chars(buffer.data(), buffer.data() + buffer.size(), value);
+    if (result.ec != std::errc{}) {
+        result = std::to_chars(buffer.data(), buffer.data() + buffer.size(), value);
+    }
     out.append(buffer.data(), result.ptr);
 }
 

@@ -99,12 +99,16 @@ async function typeRule(page, index, rule) {
     area.dispatchEvent(new Event('input', { bubbles: true }));
   }, index, rule);
 }
-async function run(page, view, button, counter) {
-  await page.click(`.view[data-view="${view}"]`);
-  const before = await page.evaluate((key) => Number(document.body.dataset[key] ?? 0), counter);
-  await page.click(button);
+const runs = (page, counter) => page.evaluate((key) => Number(document.body.dataset[key] ?? 0), counter);
+async function nextRun(page, counter, before) {
   await page.waitForFunction((key, n) => Number(document.body.dataset[key] ?? 0) > n, { timeout: 180000 }, counter, before);
   await sleep(300);
+}
+// Opens a research view, which runs by itself when its work is small.
+async function open_view(page, view, counter) {
+  const before = await runs(page, counter);
+  await page.click(`.view[data-view="${view}"]`);
+  await nextRun(page, counter, before);
 }
 
 try {
@@ -161,21 +165,32 @@ try {
   before = await backtests(page);
   await page.select('#strategy', 'sma_cross');
   await nextBacktest(page, before);
-  await run(page, 'optimize', '#sweep-run', 'sweep');
+  await open_view(page, 'optimize', 'sweep');
+  check(true, 'opening Optimize runs the sweep');
   check((await count(page, '#overfit .measure')) === 2, 'a sweep reports the deflated Sharpe ratio and the probability of overfitting');
   check((await count(page, '#top tbody tr')) === 10, 'and its ten best combinations');
   await shoot(page, 'optimize');
+  let sweeps = await runs(page, 'sweep');
+  await slide(page, 'Commission', 5);
+  await page.waitForFunction(() => document.querySelector('[data-panel="optimize"]').classList.contains('stale'), { timeout: 30000 });
+  check(true, 'a change of setting marks the sweep out of date');
+  await nextRun(page, 'sweep', sweeps);
+  check(!(await page.$eval('[data-panel="optimize"]', (panel) => panel.classList.contains('stale'))), 'and runs it again');
+  sweeps = await runs(page, 'sweep');
+  await page.click('#sweep-run');
+  await nextRun(page, 'sweep', sweeps);
+  check(true, 'Run the sweep runs it on demand');
   before = await backtests(page);
   const [chosenFast] = await page.$$eval('#top tbody tr:first-child td', (cells) => cells.map((cell) => cell.textContent));
   await page.click('#top tbody tr:first-child');
   await nextBacktest(page, before);
   check((await page.$eval('.view[aria-selected="true"]', (tab) => tab.dataset.view)) === 'backtest'
     && (await text(page, '#dateline')).includes(`fast ${chosenFast}`), 'choosing a combination backtests it');
-  await run(page, 'walkforward', '#walk-run', 'walk');
+  await open_view(page, 'walkforward', 'walk');
   check((await count(page, '#folds tbody tr')) > 5, 'a walk-forward test lists its windows');
   check((await count(page, '#walk-kpis .figure')) === 6, 'and its figures');
   await shoot(page, 'walkforward');
-  await run(page, 'montecarlo', '#monte-run', 'monte');
+  await open_view(page, 'montecarlo', 'monte');
   check((await count(page, '#histograms canvas')) === 3, 'Monte Carlo resampling draws its three distributions');
   await shoot(page, 'montecarlo');
 

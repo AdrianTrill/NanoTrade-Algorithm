@@ -8,7 +8,7 @@ export const SHORTCUTS = [
   ['O', 'Open a CSV of daily bars'],
   ['E', 'Edit the rules as a custom strategy'],
   ['F', 'The rule language and its functions'],
-  ['Enter', 'Run the sweep, walk-forward test, or resampling'],
+  ['Enter', 'Run the open research view again, or stop it'],
   ['L', 'Logarithmic or linear scale'],
   ['C', 'Candles when zoomed in'],
   ['R', 'Show the whole range'],

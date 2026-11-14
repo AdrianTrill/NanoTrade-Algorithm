@@ -40,6 +40,7 @@ class App {
     this.barsKey = '';
     this.scheduled = false;
     this.backtests = 0;
+    this.backtestOk = false;
   }
 
   start() {
@@ -52,9 +53,16 @@ class App {
     });
     this.backtest = new BacktestView({ catalog: this.catalog });
     const onError = (error) => this.jobError(error);
-    this.optimize = new OptimizeView({ engine: this.engine, catalog: this.catalog, onApply: (params) => this.applyParams(params), onError });
-    this.walk = new WalkForwardView({ engine: this.engine, catalog: this.catalog, onError });
-    this.monte = new MonteCarloView({ engine: this.engine, onError });
+    // What the research views need to know of the backtest: its size, to judge whether a run is quick enough to
+    // start by itself, and whether it ran, since a research run would only fail the same way.
+    const context = {
+      bars: () => this.backtest.result?.range?.bars ?? null,
+      barsPerYear: () => this.backtest.result?.dataset?.bars_per_year ?? null,
+      canRun: () => this.backtestOk,
+    };
+    this.optimize = new OptimizeView({ engine: this.engine, catalog: this.catalog, context, onApply: (params) => this.applyParams(params), onError });
+    this.walk = new WalkForwardView({ engine: this.engine, catalog: this.catalog, context, onError });
+    this.monte = new MonteCarloView({ engine: this.engine, context, onError });
     startTheme(() => this.redraw());
     this.drawer = new Drawer();
 
@@ -110,6 +118,13 @@ class App {
     for (const panel of $$('.view-panel')) panel.hidden = panel.dataset.panel !== view;
     saveQuery();
     this.redraw();
+    this.syncResearch({ immediate: true });
+  }
+
+  // Lets the research views catch up with the settings: the open one reruns if that's quick, and the others mark
+  // their results out of date.
+  syncResearch(options) {
+    for (const view of [this.optimize, this.walk, this.monte]) view.sync(options);
   }
 
   redraw() {
@@ -210,11 +225,15 @@ class App {
     this.backtest.render(result, bars, response.meta);
     if (response.meta) $('#runtime-detail').textContent = `${format.number(response.meta.ms, 1)} ms`;
     this.backtests += 1;
+    this.backtestOk = true;
     document.body.dataset.backtests = String(this.backtests);
     document.body.dataset.ready = 'true';
+    this.syncResearch();
   }
 
   showError(error) {
+    this.backtestOk = false;
+    this.syncResearch();
     this.backtest.setLoading(false);
     this.backtest.setStale(true);
     if (!this.backtest.result) {

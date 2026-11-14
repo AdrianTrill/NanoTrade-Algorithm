@@ -46,11 +46,9 @@ const counter = (page, key) => page.evaluate((name) => Number(document.body.data
 const after = (page, key, before) =>
   page.waitForFunction((name, n) => Number(document.body.dataset[name] ?? 0) > n, { timeout: 180_000 }, key, before);
 
-// Runs the open view's research, from its button, and waits for the result.
-async function research(page, button, key) {
-  const before = await counter(page, key);
-  await page.click(button);
-  await after(page, key, before);
+// Waits for the open research view to finish the run it starts by itself.
+async function research(page, key) {
+  await page.waitForFunction((name) => Number(document.body.dataset[name] ?? 0) > 0, { timeout: 180_000 }, key);
   await page.mouse.move(0, 0);
   await wait(800);
 }
@@ -106,26 +104,26 @@ console.log('rules.png');
 
 // The research views.
 page = await open(`?view=optimize&d=GE&from=&${sweep}`, { theme: 'dark' });
-await research(page, '#sweep-run', 'sweep');
+await research(page, 'sweep');
 await page.screenshot({ path: join(assets, 'optimize.png') });
 await page.browserContext().close();
 console.log('optimize.png');
 
 page = await open(`?view=walkforward&d=BA&${sweep}`);
-await research(page, '#walk-run', 'walk');
+await research(page, 'walk');
 await page.screenshot({ path: join(assets, 'walkforward.png') });
 await page.browserContext().close();
 console.log('walkforward.png');
 
 page = await open('?view=montecarlo&d=AAPL&s=rsi2_pullback&cb=1&sb=2', { theme: 'dark' });
-await research(page, '#monte-run', 'monte');
+await research(page, 'monte');
 await page.screenshot({ path: join(assets, 'montecarlo.png') });
 await page.browserContext().close();
 console.log('montecarlo.png');
 
 // The link-preview card: the parameter map of a search, its verdict, and the lab's own timings.
 page = await open(`?view=optimize&d=GE&from=&${sweep}`, { width: 1400, height: 900, scale: 2 });
-await research(page, '#sweep-run', 'sweep');
+await research(page, 'sweep');
 // The time of the search itself, which the page reports beside its button.
 const sweepTime = await page.$eval('#sweep-estimate', (node) => node.textContent.match(/in ([\d.]+) s/)[1]);
 const [dsr, pbo] = await page.$$eval('#overfit .measure .big', (nodes) => nodes.map((node) => node.textContent));
@@ -174,10 +172,8 @@ before = await counter(page, 'backtests');
 await page.select('#strategy', 'sma_cross');
 await after(page, 'backtests', before);
 await wait(500);
-await press(page, '2');
-await wait(600);
 before = await counter(page, 'sweep');
-await press(page, 'Enter');
+await press(page, '2');
 await after(page, 'sweep', before);
 await scrollTo(page, '#heatmap-title');
 // Valid pairs, where the fast window is below the slow one, are the map's upper left.
@@ -187,18 +183,14 @@ await wait(1200);
 await page.mouse.move(map.x + map.width * 0.45, map.y + map.height * 0.15, { steps: 15 });
 await wait(1600);
 await scrollTo(page, null);
-await press(page, '3');
-await wait(400);
 before = await counter(page, 'walk');
-await press(page, 'Enter');
+await press(page, '3');
 await after(page, 'walk', before);
 await scrollTo(page, '#walk-kpis');
 await wait(2200);
 await scrollTo(page, null);
-await press(page, '4');
-await wait(400);
 before = await counter(page, 'monte');
-await press(page, 'Enter');
+await press(page, '4');
 await after(page, 'monte', before);
 await scrollTo(page, '#monte-kpis');
 await wait(1800);

@@ -109,22 +109,41 @@ class AxisFields {
 
 // A run button that turns into Stop while its job runs, with a progress bar.
 class Runner {
-  constructor({ button, progress, engine, onResult, onError }) {
+  constructor({ button, progress, engine, onResult, onError, onStart = () => {}, onEnd = () => {} }) {
     this.button = button;
     this.progress = progress;
     this.engine = engine;
     this.onResult = onResult;
     this.onError = onError;
+    this.onStart = onStart;
+    this.onEnd = onEnd;
     this.running = false;
+    this.current = Promise.resolve();
     this.label = button.querySelector('span').textContent;
   }
 
-  async run(job) {
+  // Starts the job, or stops the one running.
+  run(job) {
     if (this.running) {
       this.engine.cancelJob();
-      return;
+      return this.current;
     }
+    this.current = this.execute(job);
+    return this.current;
+  }
+
+  // Starts the job, stopping any that's running first.
+  async restart(job) {
+    if (this.running) {
+      this.engine.cancelJob();
+      await this.current;
+    }
+    return this.run(job);
+  }
+
+  async execute(job) {
     this.running = true;
+    this.onStart();
     this.button.classList.add('danger');
     this.button.classList.remove('primary');
     this.button.querySelector('span').textContent = 'Stop';
@@ -150,42 +169,169 @@ class Runner {
       this.button.querySelector('span').textContent = this.label;
       this.button.querySelector('use').setAttribute('href', '#i-play');
       this.progress.hidden = true;
+      this.onEnd();
     }
   }
 }
 
-export class OptimizeView {
-  constructor({ engine, catalog, onApply, onError }) {
+// What the three research views share. Each runs itself when it opens, and when the settings change while it's open,
+// if the work is small enough to take a second or two; otherwise its last result stays, dimmed and marked out of
+// date, until it's run again.
+class ResearchView {
+  constructor({ view, engine, context, onError, button, progress, empty, status, limit, running }) {
+    this.view = view;
     this.engine = engine;
-    this.catalog = catalog;
-    this.onApply = onApply;
-    this.fields = new AxisFields($('#sweep-fields'), catalog, () => this.estimate());
-    this.heatmap = new Heatmap($('#heatmap'), $('#heatmap-tip'), { onSelect: (x, y) => this.apply(x, y) });
+    this.context = context;
+    this.limit = limit * (engine.runtime === 'wasm' ? 1 : 5);  // the server has every core, and no WebAssembly
+    this.empty = empty;
+    this.idleText = empty.textContent;
+    this.runningText = running;
+    this.statusNode = status;
+    this.panel = $(`.view-panel[data-panel="${view}"]`);
+    this.result = null;
+    this.resultKey = null;
+    this.pendingKey = null;
+    this.timer = 0;
     this.runner = new Runner({
+      button,
+      progress,
+      engine,
+      onError,
+      onResult: (response, ms) => {
+        this.resultKey = this.pendingKey;
+        this.show(response.result, ms);
+        this.sync();
+      },
+      onStart: () => {
+        if (!this.result) this.empty.textContent = this.runningText;
+      },
+      onEnd: () => {
+        if (!this.result) this.empty.textContent = this.idleText;
+      },
+    });
+    button.addEventListener('click', () => this.run());
+  }
+
+  // The request to run, or null when there's nothing to run.
+  job() {
+    return null;
+  }
+
+  // What identifies a result: its request, less anything that doesn't change it.
+  key(job) {
+    return JSON.stringify(job);
+  }
+
+  // The work a run would take, as the number of bars it backtests, or null when that isn't known yet.
+  workload() {
+    return null;
+  }
+
+  // What a run would do, before it has run.
+  summary() {
+    return '';
+  }
+
+  // The result still holds; anything it marks, such as the backtest's own parameters, may have moved.
+  fresh() {}
+
+  run() {
+    clearTimeout(this.timer);
+    const job = this.job();
+    if (!job) return Promise.resolve();
+    this.pendingKey = this.key(job);
+    return this.runner.run(job);
+  }
+
+  // Called when the view opens and whenever the settings change.
+  sync({ immediate = false } = {}) {
+    clearTimeout(this.timer);
+    const job = this.job();
+    const key = job && this.key(job);
+    const current = Boolean(this.result) && key === this.resultKey;
+    this.panel.classList.toggle('stale', Boolean(this.result) && !current);
+    if (current) {
+      this.fresh();
+      return;
+    }
+    if (this.runner.running && key === this.pendingKey) return;
+    const work = job && state.view === this.view && this.context.canRun() ? this.workload(job) : null;
+    if (work === null || work > this.limit) {
+      this.status(this.result ? `Out of date · ${this.summary()}` : this.summary());
+      return;
+    }
+    this.status(this.result ? 'The settings changed: running it again' : this.summary());
+    this.timer = setTimeout(() => {
+      this.pendingKey = key;
+      this.runner.restart(job);
+    }, immediate || !this.result ? 0 : 450);
+  }
+
+  status(text) {
+    this.statusNode.textContent = text;
+  }
+
+  timing(count, ms) {
+    this.status(`${count} in ${format.number(ms / 1000, 2)} s, ${this.engine.runtime === 'wasm' ? 'in this tab' : 'on the server'}`);
+  }
+}
+
+// The parameters a sweep varies, which a result doesn't depend on the backtest's own values of.
+function withoutSwept(job, spec) {
+  const copy = structuredClone(job);
+  for (const axis of [spec.x, spec.y]) {
+    if (axis) delete copy.strategy.params[axis.param];
+  }
+  return JSON.stringify(copy);
+}
+
+export class OptimizeView extends ResearchView {
+  constructor({ engine, catalog, context, onApply, onError }) {
+    super({
+      view: 'optimize',
+      engine,
+      context,
+      onError,
       button: $('#sweep-run'),
       progress: $('#sweep-progress'),
-      engine,
-      onResult: (response, ms) => this.show(response.result, ms),
-      onError,
+      empty: $('#heatmap-empty'),
+      status: $('#sweep-estimate'),
+      limit: 1.2e7,
+      running: 'Backtesting every combination…',
     });
-    $('#sweep-run').addEventListener('click', () => this.run());
-    this.result = null;
+    this.catalog = catalog;
+    this.onApply = onApply;
+    this.fields = new AxisFields($('#sweep-fields'), catalog, () => this.sync());
+    this.heatmap = new Heatmap($('#heatmap'), $('#heatmap-tip'), { onSelect: (x, y) => this.apply(x, y) });
     new ResizeObserver(() => this.redraw()).observe($('#degradation'));
   }
 
   refresh() {
     this.fields.render();
-    this.estimate();
+    this.sync();
   }
 
-  estimate() {
+  job() {
+    return state.sweep.x ? request('sweep', { sweep: this.fields.spec() }) : null;
+  }
+
+  key(job) {
+    return withoutSwept(job, job.sweep);
+  }
+
+  workload() {
+    const bars = this.context.bars();
+    return bars ? Math.min(this.fields.combinations(), 10000) * bars : null;
+  }
+
+  summary() {
     const n = this.fields.combinations();
     const text = n ? `${format.integer(n)} combinations` : '';
-    $('#sweep-estimate').textContent = n > 10000 ? `${format.integer(n)} combinations: 10,000 at most` : text;
+    return n > 10000 ? `${format.integer(n)} combinations: 10,000 at most` : text;
   }
 
-  run() {
-    return this.runner.run(request('sweep', { sweep: this.fields.spec() }));
+  fresh() {
+    this.heatmap.set(this.result, this.current());
   }
 
   apply(x, y) {
@@ -207,7 +353,7 @@ export class OptimizeView {
     this.renderTop();
     this.renderOverfit();
     this.redraw();
-    $('#sweep-estimate').textContent = `${format.integer(result.valid)} backtests in ${format.number(ms / 1000, 2)} s, ${this.engine.runtime === 'wasm' ? 'in this tab' : 'on the server'}`;
+    this.timing(`${format.integer(result.valid)} backtests`, ms);
     document.body.dataset.sweep = String(Number(document.body.dataset.sweep ?? 0) + 1);
   }
 
@@ -264,21 +410,23 @@ export class OptimizeView {
   }
 }
 
-export class WalkForwardView {
-  constructor({ engine, catalog, onError }) {
-    this.engine = engine;
-    this.catalog = catalog;
-    this.fields = new AxisFields($('#walk-fields'), catalog, () => this.estimate());
-    this.chart = new TimeChart($('#walk-chart'), { tooltip: $('#walk-tip'), onHover: (i) => this.tooltip(i) });
-    this.runner = new Runner({
+export class WalkForwardView extends ResearchView {
+  constructor({ engine, catalog, context, onError }) {
+    super({
+      view: 'walkforward',
+      engine,
+      context,
+      onError,
       button: $('#walk-run'),
       progress: $('#walk-progress'),
-      engine,
-      onResult: (response, ms) => this.show(response.result, ms),
-      onError,
+      empty: $('#walk-empty'),
+      status: $('#walk-estimate'),
+      limit: 1.2e7,
+      running: 'Optimizing each window and trading the next…',
     });
-    $('#walk-run').addEventListener('click', () => this.run());
-    this.result = null;
+    this.catalog = catalog;
+    this.fields = new AxisFields($('#walk-fields'), catalog, () => this.sync());
+    this.chart = new TimeChart($('#walk-chart'), { tooltip: $('#walk-tip'), onHover: (i) => this.tooltip(i) });
   }
 
   refresh() {
@@ -287,7 +435,7 @@ export class WalkForwardView {
       input.addEventListener('change', () => {
         const v = Number(input.value);
         if (Number.isFinite(v)) state.walk[key] = v;
-        this.estimate();
+        this.sync();
       });
       return element('label', { class: 'run-field' }, element('span', {}, label), input);
     };
@@ -295,25 +443,42 @@ export class WalkForwardView {
     anchored.checked = state.walk.anchored;
     anchored.addEventListener('change', () => {
       state.walk.anchored = anchored.checked;
+      this.sync();
     });
     this.fields.render([
       number('isYears', 'Years in sample', 0.5, 30, 0.5),
       number('oosYears', 'Years out of sample', 0.25, 10, 0.25),
       element('label', { class: 'run-field', title: 'Keep the first year in every in-sample window, so it grows' }, element('span', {}, 'Anchored'), anchored),
     ]);
-    this.estimate();
+    this.sync();
   }
 
-  estimate() {
-    const n = this.fields.combinations();
-    $('#walk-estimate').textContent = n ? `${format.integer(n)} combinations a fold` : '';
-  }
-
-  run() {
+  job() {
+    if (!state.sweep.x) return null;
     const spec = this.fields.spec();
-    return this.runner.run(request('walkforward', {
+    return request('walkforward', {
       walkforward: { ...spec, in_sample_years: state.walk.isYears, out_of_sample_years: state.walk.oosYears, anchored: state.walk.anchored },
-    }));
+    });
+  }
+
+  key(job) {
+    return withoutSwept(job, job.walkforward);
+  }
+
+  // Each window searches its in-sample years, and there's a window for each out-of-sample stretch after the first.
+  workload() {
+    const bars = this.context.bars();
+    const perYear = this.context.barsPerYear() || 252;
+    const inSample = state.walk.isYears * perYear;
+    const outOfSample = state.walk.oosYears * perYear;
+    if (!bars || bars <= inSample || outOfSample <= 0) return null;
+    const searched = state.walk.anchored ? (inSample + bars) / 2 : inSample;
+    return Math.min(this.fields.combinations(), 10000) * searched * ((bars - inSample) / outOfSample);
+  }
+
+  summary() {
+    const n = this.fields.combinations();
+    return n ? `${format.integer(n)} combinations a window` : '';
   }
 
   show(result, ms) {
@@ -370,7 +535,7 @@ export class WalkForwardView {
         element('td', {}, format.percent(-fold.out_of_sample.max_drawdown, 1)), element('td', {}, format.integer(fold.out_of_sample.trades))));
     }
     $('#folds').replaceChildren(element('table', {}, element('thead', {}, head), body));
-    $('#walk-estimate').textContent = `${result.folds.length} windows in ${format.number(ms / 1000, 2)} s, ${this.engine.runtime === 'wasm' ? 'in this tab' : 'on the server'}`;
+    this.timing(`${result.folds.length} windows`, ms);
     document.body.dataset.walk = String(Number(document.body.dataset.walk ?? 0) + 1);
   }
 
@@ -394,19 +559,21 @@ const ordinal = (n) => {
   return `${n}${suffix}`;
 };
 
-export class MonteCarloView {
-  constructor({ engine, onError }) {
-    this.engine = engine;
-    this.chart = new TimeChart($('#fan'), { tooltip: $('#fan-tip'), onHover: (i) => this.tooltip(i), minSpan: 3 });
-    this.runner = new Runner({
+export class MonteCarloView extends ResearchView {
+  constructor({ engine, context, onError }) {
+    super({
+      view: 'montecarlo',
+      engine,
+      context,
+      onError,
       button: $('#monte-run'),
       progress: $('#monte-progress'),
-      engine,
-      onResult: (response, ms) => this.show(response.result, ms),
-      onError,
+      empty: $('#fan-empty'),
+      status: $('#monte-estimate'),
+      limit: 4e7,
+      running: 'Resampling the backtest\'s returns…',
     });
-    $('#monte-run').addEventListener('click', () => this.run());
-    this.result = null;
+    this.chart = new TimeChart($('#fan'), { tooltip: $('#fan-tip'), onHover: (i) => this.tooltip(i), minSpan: 3 });
     new ResizeObserver(() => this.redraw()).observe($('#histograms'));
   }
 
@@ -416,16 +583,26 @@ export class MonteCarloView {
       input.addEventListener('change', () => {
         const v = Number(input.value);
         if (Number.isFinite(v)) state.monte[key] = Math.round(v);
+        this.sync();
       });
       return element('label', { class: 'run-field' }, element('span', {}, label), input);
     };
     $('#monte-fields').replaceChildren(number('paths', 'Paths', 10, 10000, 100), number('block', 'Mean block, in bars', 1, 500, 1), number('seed', 'Seed', 0, 1e9, 1),
       element('p', { class: 'note', style: { maxWidth: '440px', alignSelf: 'center' } }, 'A stationary bootstrap: runs of consecutive days, of random length, drawn from the backtest\'s own returns.'));
-    $('#monte-estimate').textContent = '';
+    this.sync();
   }
 
-  run() {
-    return this.runner.run(request('montecarlo', { montecarlo: { paths: state.monte.paths, block: state.monte.block, seed: state.monte.seed } }));
+  job() {
+    return request('montecarlo', { montecarlo: { paths: state.monte.paths, block: state.monte.block, seed: state.monte.seed } });
+  }
+
+  workload() {
+    const bars = this.context.bars();
+    return bars ? state.monte.paths * bars : null;
+  }
+
+  summary() {
+    return `${format.integer(state.monte.paths)} paths`;
   }
 
   quantile(values, q) {
@@ -462,7 +639,7 @@ export class MonteCarloView {
       }],
     });
     this.redraw();
-    $('#monte-estimate').textContent = `${format.integer(result.paths)} paths in ${format.number(ms / 1000, 2)} s, ${this.engine.runtime === 'wasm' ? 'in this tab' : 'on the server'}`;
+    this.timing(`${format.integer(result.paths)} paths`, ms);
     document.body.dataset.monte = String(Number(document.body.dataset.monte ?? 0) + 1);
   }
 

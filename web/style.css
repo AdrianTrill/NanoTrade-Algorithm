@@ -745,6 +745,31 @@ html {
   scrollbar-color: var(--border-strong) transparent;
 }
 
+/* Fades where the card's settings run on past its edges: overlays that stick to the edges of its view, and sit over
+   the empty padding at either end once it's scrolled there. */
+.spec::before,
+.spec::after {
+  content: "";
+  position: sticky;
+  z-index: 3;
+  display: block;
+  pointer-events: none;
+}
+
+.spec::before {
+  top: 0;
+  height: 16px;
+  margin-bottom: -16px;
+  background: linear-gradient(var(--surface), transparent);
+}
+
+.spec::after {
+  bottom: 0;
+  height: 32px;
+  margin-top: -20px;
+  background: linear-gradient(transparent, var(--surface));
+}
+
 .spec-section {
   display: flex;
   flex-direction: column;
@@ -1842,6 +1867,44 @@ button.legend-item:hover {
   scrollbar-width: thin;
 }
 
+/* Edges with more beyond them fade out, as scrollEdges marks them; a table's head stays clear, since it sticks. */
+:is(.table-scroll, .command-list, .tabs, .sections) {
+  --fade-x: linear-gradient(#000 0 0);
+  --fade-y: linear-gradient(#000 0 0);
+}
+
+/* Only while there's more to see: a mask also clips what reaches past the element, such as a tab's underline. */
+:is(.table-scroll, .command-list, .tabs, .sections):is([data-more~="top"], [data-more~="bottom"], [data-more~="left"], [data-more~="right"]) {
+  -webkit-mask-image: var(--fade-x), var(--fade-y);
+  -webkit-mask-composite: source-in;
+  mask-image: var(--fade-x), var(--fade-y);
+  mask-composite: intersect;
+}
+
+[data-more~="right"] {
+  --fade-x: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+}
+
+[data-more~="left"] {
+  --fade-x: linear-gradient(to right, transparent, #000 40px);
+}
+
+[data-more~="left"][data-more~="right"] {
+  --fade-x: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent);
+}
+
+:is(.table-scroll, .command-list)[data-more~="bottom"] {
+  --fade-y: linear-gradient(#000 calc(100% - 40px), transparent);
+}
+
+.command-list[data-more~="top"] {
+  --fade-y: linear-gradient(transparent, #000 24px);
+}
+
+.command-list[data-more~="top"][data-more~="bottom"] {
+  --fade-y: linear-gradient(transparent, #000 24px, #000 calc(100% - 40px), transparent);
+}
+
 /* The ten best combinations, and the note under them, show whole. */
 #top {
   max-height: none;
@@ -2635,6 +2698,11 @@ td.heat {
 
   .spec-toggle {
     display: inline-flex;
+  }
+
+  /* The sheet's own header sticks to its top. */
+  .spec::before {
+    display: none;
   }
 
   .search-button {

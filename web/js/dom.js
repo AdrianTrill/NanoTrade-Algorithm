@@ -29,6 +29,29 @@ export function element(tag, attributes = {}, ...children) {
   return node;
 }
 
+// Marks the edges of a scrolling element that have more beyond them, as data-more="top bottom left right", for the
+// stylesheet to fade. It reads the element's size only once the browser reports it laid out, never forcing a layout.
+export function scrollEdges(node) {
+  const update = () => {
+    const more = [];
+    if (node.scrollTop > 1) more.push('top');
+    if (node.scrollTop + node.clientHeight < node.scrollHeight - 1) more.push('bottom');
+    if (node.scrollLeft > 1) more.push('left');
+    if (node.scrollLeft + node.clientWidth < node.scrollWidth - 1) more.push('right');
+    const value = more.join(' ');
+    if (node.dataset.more !== value) node.dataset.more = value;
+  };
+  const sizes = new ResizeObserver(update);
+  const watch = () => {
+    sizes.disconnect();
+    sizes.observe(node);
+    for (const child of node.children) sizes.observe(child);
+  };
+  new MutationObserver(watch).observe(node, { childList: true });
+  node.addEventListener('scroll', update, { passive: true });
+  watch();
+}
+
 // Lets the browser paint, and handle input, before the work that follows: a task of its own, without the clamping that
 // setTimeout gets.
 export function yieldToBrowser() {

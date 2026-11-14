@@ -2,7 +2,7 @@
 import { BacktestView } from './backtest.js';
 import { avatar, CommandMenu } from './command.js';
 import { Controls } from './controls.js';
-import { $, $$, element, rovingTabs } from './dom.js';
+import { $, $$, element, rovingTabs, scrollEdges } from './dom.js';
 import { connect, Superseded } from './engine.js';
 import { highlight } from './editor.js';
 import * as format from './format.js';
@@ -74,6 +74,7 @@ class App {
 
     for (const tab of $$('.view')) tab.addEventListener('click', () => this.showView(tab.dataset.view));
     for (const list of $$('[role="tablist"]')) rovingTabs(list);
+    for (const node of $$('.table-scroll, .command-list, .tabs, .sections')) scrollEdges(node);
     $('#share').addEventListener('click', () => this.share());
     $('#help').addEventListener('click', () => $('#shortcuts').showModal());
     $('#status-help').addEventListener('click', () => $('#shortcuts').showModal());

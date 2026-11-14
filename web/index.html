@@ -50,6 +50,14 @@
     <symbol id="i-x" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
     <symbol id="i-function" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4.5c-2.5-.8-4 .3-4.5 3L8.5 18c-.5 2.7-2 3.6-4.5 2.8"/><path d="M7 10h7"/><path d="m14.5 13 5 5M19.5 13l-5 5"/></g></symbol>
     <symbol id="i-sliders" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></g></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></g></symbol>
+    <symbol id="i-slash" viewBox="0 0 24 24"><path d="M16.5 3.5 7.5 20.5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></symbol>
+    <symbol id="i-chevrons" viewBox="0 0 24 24"><path d="m8 9.5 4-4 4 4M16 14.5l-4 4-4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3.5 19.5h17M5 15.5l4.5-5 3.5 3 6.5-7.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 12h16M12 4v16"/></g></symbol>
+    <symbol id="i-steps" viewBox="0 0 24 24"><path d="M3.5 18.5h5v-5h5v-5h7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-database" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5"><ellipse cx="12" cy="6" rx="7" ry="2.5"/><path d="M5 6v12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V6M5 12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5"/></g></symbol>
     <symbol id="i-edit" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16Z"/><path d="m13.5 6.5 4 4"/></g></symbol>
   </svg>
 
@@ -57,11 +65,18 @@
     <header class="masthead">
       <div class="masthead-inner">
         <div class="masthead-row">
-          <a class="brand" href="./" aria-label="NanoTrade, home">
-            <svg class="mark" width="24" height="24"><use href="#i-mark"/></svg>
-            <span class="wordmark">NanoTrade</span>
-          </a>
+          <div class="crumbs">
+            <a class="brand" href="./" aria-label="NanoTrade, home">
+              <svg class="mark" width="24" height="24"><use href="#i-mark"/></svg>
+              <span class="wordmark">NanoTrade</span>
+            </a>
+            <svg class="slash" aria-hidden="true"><use href="#i-slash"/></svg>
+            <button class="crumb" id="crumb-data" aria-haspopup="dialog" title="Switch the market"><span class="avatar" aria-hidden="true"></span><span class="crumb-text" id="crumb-data-label">Market</span><svg class="icon"><use href="#i-chevrons"/></svg></button>
+            <svg class="slash strategy-slash" aria-hidden="true"><use href="#i-slash"/></svg>
+            <button class="crumb" id="crumb-strategy" aria-haspopup="dialog" title="Switch the strategy"><span class="avatar" aria-hidden="true"></span><span class="crumb-text" id="crumb-strategy-label">Strategy</span><svg class="icon"><use href="#i-chevrons"/></svg></button>
+          </div>
           <p class="runtime" id="runtime" title="Where the engine runs"><span class="dot"></span><span id="runtime-label">Starting</span><span class="runtime-detail" id="runtime-detail"></span></p>
+          <button class="search-button" id="command-open" aria-haspopup="dialog" aria-label="Search" title="Search markets, strategies, views, and actions"><svg class="icon"><use href="#i-search"/></svg><span>Search…</span><kbd data-mod-k>⌘ K</kbd></button>
           <button class="spec-toggle" id="spec-toggle" aria-controls="spec" aria-expanded="false" title="The backtest's settings"><svg class="icon"><use href="#i-sliders"/></svg><span>Settings</span></button>
           <nav class="tools" aria-label="Page tools">
             <button class="button small" id="share" title="Copy a link to this backtest (S)"><svg class="icon"><use href="#i-link"/></svg><span>Share</span></button>
@@ -292,6 +307,16 @@
   <dialog id="shortcuts" class="dialog" aria-label="Keyboard shortcuts">
     <header><h2>Keyboard shortcuts</h2><button class="square-button" data-close aria-label="Close"><svg class="icon"><use href="#i-x"/></svg></button></header>
     <dl id="shortcut-list"></dl>
+  </dialog>
+
+  <dialog id="command" class="dialog command" aria-label="Command menu">
+    <div class="command-search">
+      <svg class="icon"><use href="#i-search"/></svg>
+      <input id="command-input" type="text" role="combobox" aria-expanded="true" aria-controls="command-list" aria-autocomplete="list" aria-label="Search" autocomplete="off" spellcheck="false">
+      <kbd>Esc</kbd>
+    </div>
+    <div class="command-list" id="command-list" role="listbox" aria-label="Commands"></div>
+    <footer class="command-foot"><span><kbd>↑</kbd><kbd>↓</kbd> to move</span><span><kbd>↵</kbd> to choose</span><span><kbd>Esc</kbd> to close</span></footer>
   </dialog>
 
   <dialog id="reference" class="dialog wide" aria-label="The rule language">

@@ -1,6 +1,7 @@
 // The lab in headless Chrome: it must start without errors, run a backtest, react to its settings, report a rule's
 // error where it is, run a sweep, a walk-forward test, and Monte Carlo resampling, open a CSV, switch themes, answer
-// its keys, restore a backtest from a link, and fit a phone's screen, with the settings in a sheet over the result.
+// its keys and its command menu, restore a backtest from a link, and fit a phone's screen, with the settings in a
+// sheet over the result.
 //
 //   node web/ui-check.mjs SITE_DIR [--native PATH_TO_NANOTRADE] [--screenshots DIR]
 //
@@ -239,6 +240,30 @@ try {
   check(await page.$eval('#reference', (dialog) => dialog.open) && (await count(page, '#reference tbody tr')) >= 20,
     'F opens the rule language reference');
   await page.keyboard.press('Escape');
+
+  // The command menu, from its keys and from the breadcrumbs.
+  check((await text(page, '#crumb-data-label')) === 'GE · General Electric' && (await text(page, '#crumb-strategy-label')) === 'SMA crossover',
+    'the breadcrumbs name the market and the strategy');
+  await page.keyboard.down('Control');
+  await page.keyboard.press('k');
+  await page.keyboard.up('Control');
+  check(await page.$eval('#command', (dialog) => dialog.open) && (await count(page, '#command [role="option"]')) > 20,
+    'Ctrl K opens the command menu, with every command');
+  await page.keyboard.type('walk');
+  check(await page.evaluate(() => document.querySelector('#command [aria-selected="true"]')?.textContent.startsWith('Walk-forward')),
+    'typing finds a command');
+  await page.keyboard.press('Escape');
+  await page.click('#crumb-data');
+  check(await page.evaluate(() => {
+    const dialog = document.querySelector('#command');
+    return dialog.open && dialog.dataset.scope === 'data' && dialog.querySelector('[aria-selected="true"]')?.textContent.startsWith('GE ·');
+  }), 'the market\'s breadcrumb opens it on the markets, at the current one');
+  before = await backtests(page);
+  await page.keyboard.type('ford');
+  await page.keyboard.press('Enter');
+  await nextBacktest(page, before);
+  check(/on Ford/.test(await text(page, '#headline')) && (await text(page, '#crumb-data-label')) === 'F · Ford',
+    'and choosing another backtests it there');
   const folder = mkdtempSync(join(tmpdir(), 'nanotrade-ui-'));
   const lines = ['Date,Open,High,Low,Close,Volume'];
   let close = 100;

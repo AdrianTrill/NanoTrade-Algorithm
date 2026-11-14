@@ -1,7 +1,11 @@
 // Keyboard shortcuts, and the list that ? opens. Typing in a field, or holding Ctrl, Cmd, or Alt, leaves keys alone.
 import { $, element } from './dom.js';
 
+// The command menu's modifier, as the keyboard labels it.
+export const MOD = /mac|iphone|ipad/i.test(navigator.userAgentData?.platform || navigator.platform || '') ? '⌘' : 'Ctrl';
+
 export const SHORTCUTS = [
+  [`${MOD} K`, 'Search markets, strategies, views, and actions'],
   ['1 2 3 4', 'Backtest, optimize, walk-forward, or Monte Carlo'],
   ['[ ]', 'The previous or next market'],
   ['N', 'Another random market'],

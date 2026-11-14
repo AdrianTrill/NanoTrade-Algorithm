@@ -1,5 +1,6 @@
 // NanoTrade Lab: wires the settings to the engine and the views.
 import { BacktestView } from './backtest.js';
+import { avatar, CommandMenu } from './command.js';
 import { Controls } from './controls.js';
 import { $, $$, element, rovingTabs } from './dom.js';
 import { connect, Superseded } from './engine.js';
@@ -11,10 +12,12 @@ import { runtime } from './runtime.js';
 import { MonteCarloView, OptimizeView, WalkForwardView } from './research.js';
 import { startShortcuts } from './shortcuts.js';
 import { dataSpec, fromQuery, request, saveQuery, state } from './state.js';
-import { startTheme } from './theme.js';
+import { currentTheme, startTheme, toggleTheme } from './theme.js';
 import { toast } from './toast.js';
 
 const VIEWS = ['backtest', 'optimize', 'walkforward', 'montecarlo'];
+const VIEW_COMMANDS = [['backtest', 'Backtest', 'chart'], ['optimize', 'Optimize', 'grid'], ['walkforward', 'Walk-forward', 'steps'], ['montecarlo', 'Monte Carlo', 'dice']];
+const SOURCE = 'https://github.com/AdrianTrill/NanoTrade-Algorithm';
 
 const EXAMPLES = [
   ['Golden cross', { long_entry: 'sma(close, 50) > sma(close, 200)' }],
@@ -76,7 +79,7 @@ class App {
     $('#help').addEventListener('click', () => $('#shortcuts').showModal());
     $('#status-help').addEventListener('click', () => $('#shortcuts').showModal());
     this.listenForDrops();
-    startShortcuts({
+    const actions = {
       1: () => this.showView('backtest'),
       2: () => this.showView('optimize'),
       3: () => this.showView('walkforward'),
@@ -111,7 +114,13 @@ class App {
         else if (state.view === 'walkforward') this.walk.run();
         else if (state.view === 'montecarlo') this.monte.run();
       },
-    });
+    };
+    startShortcuts(actions);
+    this.menu = new CommandMenu(() => this.commands(actions));
+    $('#command-open').addEventListener('click', () => this.menu.open());
+    $('#crumb-data').addEventListener('click', () => this.menu.open('data'));
+    $('#crumb-strategy').addEventListener('click', () => this.menu.open('strategy'));
+    this.updateCrumbs();
     this.refreshResearch();
     this.showView(VIEWS.includes(state.view) ? state.view : 'backtest');
     document.body.classList.remove('booting');
@@ -155,8 +164,67 @@ class App {
     if (what === 'strategy' || what === 'rules') {
       this.refreshResearch();
     }
+    this.updateCrumbs();
     saveQuery();
     this.scheduleBacktest();
+  }
+
+  // The breadcrumbs name the market and the strategy, each with its avatar.
+  updateCrumbs() {
+    const info = this.controls.datasetInfo();
+    const market = state.data === 'random' ? 'Random market' : info?.symbol ? `${info.symbol} · ${info.name}` : info?.title ?? state.data;
+    const strategy = this.controls.strategyInfo()?.name ?? state.strategy;
+    for (const [id, label, key] of [['data', market, state.data], ['strategy', strategy, state.strategy]]) {
+      $(`#crumb-${id}-label`).textContent = label;
+      $(`#crumb-${id} .avatar`).replaceWith(avatar(key));
+    }
+  }
+
+  // What the command menu offers, as it opens: the views, the markets, the strategies, and the page's actions.
+  commands(actions) {
+    const list = VIEW_COMMANDS.map(([view, label, glyph], index) => ({
+      group: 'Views', label, icon: glyph, hint: String(index + 1), current: state.view === view, run: () => this.showView(view),
+    }));
+    for (const option of this.controls.datasetSelect.options) {
+      list.push({
+        group: 'Markets', scope: 'data', label: option.textContent, keywords: option.parentElement.label, avatar: avatar(option.value),
+        current: option.value === state.data, run: () => this.choose(this.controls.datasetSelect, option.value),
+      });
+    }
+    list.push(
+      { group: 'Markets', scope: 'data', label: 'Open a CSV of daily bars…', keywords: 'file upload import', icon: 'upload', hint: 'O', run: actions.o },
+      { group: 'Markets', scope: 'data', label: 'Another random market', keywords: 'seed synthetic', icon: 'dice', hint: 'N', run: actions.n },
+    );
+    for (const strategy of this.catalog.strategies) {
+      list.push({
+        group: 'Strategies', scope: 'strategy', label: strategy.name, keywords: `${strategy.family} ${strategy.summary ?? ''}`, avatar: avatar(strategy.id),
+        current: strategy.id === state.strategy, run: () => this.choose(this.controls.strategySelect, strategy.id),
+      });
+    }
+    if (state.strategy !== 'custom' && state.strategy !== 'buy_hold') {
+      list.push({ group: 'Strategies', scope: 'strategy', label: 'Edit these rules as a custom strategy', keywords: 'custom rules', icon: 'edit', hint: 'E', run: actions.e });
+    }
+    const dark = currentTheme() === 'dark';
+    const candles = $('#candles').getAttribute('aria-pressed') === 'true';
+    list.push(
+      { group: 'Actions', label: 'Copy a link to this backtest', keywords: 'share url', icon: 'link', hint: 'S', run: actions.s },
+      { group: 'Actions', label: `Switch to the ${dark ? 'light' : 'dark'} theme`, keywords: 'theme appearance mode', icon: dark ? 'sun' : 'moon', hint: 'T', run: toggleTheme },
+      { group: 'Actions', label: this.backtest.log ? 'Linear price scale' : 'Logarithmic price scale', keywords: 'log chart', icon: 'chart', hint: 'L', run: actions.l },
+      { group: 'Actions', label: candles ? 'Lines instead of candles' : 'Candles when zoomed in', keywords: 'chart ohlc', icon: 'chart', hint: 'C', run: actions.c },
+      { group: 'Actions', label: 'Show the whole range', keywords: 'zoom reset chart', icon: 'chart', hint: 'R', run: actions.r },
+      { group: 'Actions', label: 'Download the trades as CSV', keywords: 'export', icon: 'download', run: () => $('#export').click() },
+      { group: 'Actions', label: 'The rule language and its functions', keywords: 'reference help', icon: 'function', hint: 'F', run: actions.f },
+      { group: 'Actions', label: 'Keyboard shortcuts', keywords: 'keys help', icon: 'keyboard', hint: '?', run: () => $('#shortcuts').showModal() },
+      { group: 'Actions', label: 'Source on GitHub', keywords: 'code repository', icon: 'github', run: () => window.open(SOURCE, '_blank', 'noopener') },
+    );
+    return list;
+  }
+
+  // Chooses an option as if from its select, so the change goes the way a choice there goes.
+  choose(select, value) {
+    if (select.value === value) return;
+    select.value = value;
+    select.dispatchEvent(new Event('change'));
   }
 
   applyParams(params) {

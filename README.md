@@ -18,9 +18,9 @@ NanoTrade is a backtesting engine for trading strategies, in C++20 with no depen
 > NanoTrade is for research and learning, not investment advice. A backtest describes the past, and the lab is built to show how little of it a search can carry forward.
 
 <p align="center">
-  <a href="https://adriantrill.github.io/NanoTrade-Algorithm/"><img src="docs/assets/demo.gif" width="857" alt="The live lab: a backtest of the SMA crossover moves to Boeing, a rule typed by hand reruns at once, then a parameter search draws its map and its verdict on overfitting, a walk-forward test chains its out-of-sample years, Monte Carlo resampling draws its bands, and the page switches to the night edition"></a>
+  <a href="https://adriantrill.github.io/NanoTrade-Algorithm/"><img src="docs/assets/demo.gif" width="857" alt="The live lab: a backtest of the SMA crossover moves to Boeing from the command menu, a rule typed by hand reruns at once, the strategy's breadcrumb switches back to the SMA crossover, then a parameter search draws its map and its verdict on overfitting, a walk-forward test chains its out-of-sample years, Monte Carlo resampling draws its bands, and the page switches to the dark theme"></a>
 </p>
-<p align="center"><em>The <a href="https://adriantrill.github.io/NanoTrade-Algorithm/">live lab</a> on GitHub Pages: another market, a rule typed by hand, a parameter search and its verdict, a walk-forward test, resampling, and the night edition.</em></p>
+<p align="center"><em>The <a href="https://adriantrill.github.io/NanoTrade-Algorithm/">live lab</a> on GitHub Pages: another market from the command menu, a rule typed by hand, a parameter search and its verdict, a walk-forward test, resampling, and the dark theme.</em></p>
 
 ## What's inside
 
@@ -29,7 +29,7 @@ NanoTrade is a backtesting engine for trading strategies, in C++20 with no depen
 | **[Engine](#how-a-backtest-runs)** | Fills at the next open with slippage and commissions, stops within the bar, trailing stops, volatility targeting, shorts that pay to borrow, and more than thirty measures of the result | Cases worked by hand, and four properties under random signals on all 68,292 bundled bars |
 | **[Rule language](#the-rule-language)** | Strategies as rules: twenty functions, type checks before anything runs, and errors that point at the characters at fault | Every built-in strategy, bar by bar, against an independent version of it |
 | **[Is it real?](#is-it-real)** | Parameter sweeps on every core, the deflated Sharpe ratio, the probability of backtest overfitting, walk-forward tests, and Monte Carlo resampling | Known answers: a PBO near one half on pure noise, sweeps equal to separate backtests, and the same bits on one thread or eight |
-| **[The lab](#the-lab)** | A research report in the browser: a written verdict, numbered figures, the parameter map, and every run in its link | Headless Chrome on every push, against WebAssembly and against the native server |
+| **[The lab](#the-lab)** | A dashboard in the browser, laid out like Vercel's and set in Geist: a written verdict, the parameter map, a <kbd>⌘</kbd> <kbd>K</kbd> command menu, and every run in its link | Headless Chrome on every push, against WebAssembly and against the native server |
 | **[One API, three runtimes](#one-engine-three-runtimes)** | The same JSON API from the command line, a native HTTP server, and WebAssembly | 23 golden responses, byte for byte, with GCC, Clang, Apple Clang, MSVC, and in WebAssembly |
 | **[What it finds](#what-it-finds)** | A study: eight strategies against buying and holding, what a search finds on random markets, and walk-forward results | CI runs it again and requires every number |
 | **[Data](#data)** | 52 years of daily bars for seven US stocks, in the public domain | CI downloads them again and requires the same bytes |
@@ -38,7 +38,7 @@ NanoTrade is a backtesting engine for trading strategies, in C++20 with no depen
 
 ## Try it
 
-**[Open the lab](https://adriantrill.github.io/NanoTrade-Algorithm/).** It opens on a backtest of the SMA crossover on Apple. Pick a market, or step through them with <kbd>[</kbd> and <kbd>]</kbd>; choose a strategy and drag its parameters, or press <kbd>E</kbd> to edit its rules. <kbd>2</kbd>, <kbd>3</kbd>, and <kbd>4</kbd> open the research views, which run as they open; <kbd>Enter</kbd> runs one again. <kbd>S</kbd> copies a link to exactly what you see, <kbd>T</kbd> switches between the paper and night editions (the first visit follows your system), and <kbd>?</kbd> lists every key. On a phone, **Settings** opens them in a sheet over the result. The engine runs in your tab, in WebAssembly, so nothing you do leaves the page, including a CSV of your own (<kbd>O</kbd>).
+**[Open the lab](https://adriantrill.github.io/NanoTrade-Algorithm/).** It opens on a backtest of the SMA crossover on Apple. Switch the market or the strategy from the breadcrumbs at the top, step through the markets with <kbd>[</kbd> and <kbd>]</kbd>, or press <kbd>⌘</kbd> <kbd>K</kbd> (<kbd>Ctrl</kbd> <kbd>K</kbd> off a Mac) and type a few letters of a market, a strategy, a view, or an action. Drag a strategy's parameters, or press <kbd>E</kbd> to edit its rules. <kbd>2</kbd>, <kbd>3</kbd>, and <kbd>4</kbd> open the research views, which run as they open; <kbd>Enter</kbd> runs one again. <kbd>S</kbd> copies a link to exactly what you see, <kbd>T</kbd> switches between light and dark (the first visit follows your system, and the footer can hand the choice back to it), and <kbd>?</kbd> lists every key. On a phone, **Settings** opens them in a sheet over the result. The engine runs in your tab, in WebAssembly, so nothing you do leaves the page, including a CSV of your own (<kbd>O</kbd>).
 
 To run it natively:
 
@@ -51,10 +51,10 @@ cmake --build build --parallel
 ## The lab
 
 <p align="center">
-  <img src="docs/assets/backtest.png" width="857" alt="The backtest view in the paper edition: the SMA crossover on Apple from 2003 to 2013, headlined with a sentence that sets its result against buying and holding, six figures with bars comparing them, and Figure 1: the price with both moving averages and every entry and exit, the position held, the strategy's equity against buying and holding, and both drawdowns">
+  <img src="docs/assets/backtest.png" width="857" alt="The backtest view in the light theme: the breadcrumbs NanoTrade, AAPL · Apple, and SMA crossover above the views; the settings in a card beside the report; the SMA crossover on Apple from 2003 to 2013, headlined with a sentence that sets its result against buying and holding; six figures in one card with bars comparing them; and the chart card: the price with both moving averages and every entry and exit, the position held, the strategy's equity against buying and holding, and both drawdowns">
 </p>
 
-The lab reads like a research report rather than a dashboard. Each run gets a headline, a sentence that sets the result against buying and holding, and a dateline with the parameters and the time the engine took. Figures are numbered and drawn on canvas, with their tables beneath them.
+The lab is laid out like a Vercel dashboard and set in Vercel's typefaces, Geist and Geist Mono: breadcrumbs that switch the market and the strategy, the views as tabs that stay in place as the page scrolls, the settings in a card beside the report, and the figures, charts, and tables in cards of their own. The interface is black and white, in light or dark, and color is kept for the data. Each run gets a headline, a sentence that sets the result against buying and holding, and a line with the parameters and the time the engine took; the charts are drawn on canvas in the page's own colors.
 
 - **Backtest.** Six figures against buying and holding, and one chart in four panes on a shared time axis: the price with the strategy's indicators and trades, the position held, equity on a log scale, and drawdowns. It zooms and pans, and shows candles when zoomed in. Below it are the monthly returns, every measure, the worst drawdowns, and the trades.
 - **Optimize.** The parameter map colors each combination by its score, on a scale that diverges at zero; hover a cell for its numbers, or click it to backtest it. Beside it, *Is the winner real?* gives the deflated Sharpe ratio, the probability of backtest overfitting, the distribution of the winner's rank out of sample, and a verdict in words.
@@ -62,18 +62,20 @@ The lab reads like a research report rather than a dashboard. Each run gets a he
 - **Walk-forward** chains the out-of-sample years into one equity curve, shaded window by window, and lists each window's choice.
 - **Monte Carlo** draws the bands of a thousand resampled paths around the backtest, and the distributions of their returns, drawdowns, and Sharpe ratios.
 - **A link holds the run.** The address keeps the market, dates, strategy, rules, parameters, costs, and research settings, so a link reopens the same run.
+- **A command menu.** <kbd>⌘</kbd> <kbd>K</kbd> or **Search** finds any market, strategy, view, or action by a few of its letters, with each action's key beside it, and a breadcrumb opens it on its own kind, at the current choice. Screen readers get it as a combobox and a listbox.
+- **Light, dark, or the system's.** The first visit follows the system; <kbd>T</kbd> or the masthead's button switches, and the footer's System, Light, and Dark switch hands the choice back to the system.
 - **Any screen.** On a phone or a tablet the result comes first, and **Settings** slides the controls over it: from the left on a tablet, and from the bottom on a phone, leaving the headline figures in view so each change shows as it's made. Touch targets grow for fingers, the tabs follow the keyboard's arrow keys, and while the engine downloads, placeholders show where everything will be.
 
 <p align="center">
-  <img src="docs/assets/optimize.png" width="857" alt="The optimize view in the night edition: a search of 300 pairs of SMA windows on General Electric from 1962 to 2013, drawn as a parameter map of Sharpe ratios, beside the box Is the winner real?, with a deflated Sharpe ratio above 99%, a probability of backtest overfitting near 80%, the distribution of the winner's out-of-sample rank, and the verdict that the strategy family beats luck but its best parameters don't persist">
+  <img src="docs/assets/optimize.png" width="857" alt="The optimize view in the dark theme: a search of 300 pairs of SMA windows on General Electric from 1962 to 2013, its settings in a form card with the search's time and its button in the card's foot, then a parameter map of Sharpe ratios beside the card Is the winner real?, with a deflated Sharpe ratio above 99%, a probability of backtest overfitting near 80%, the distribution of the winner's out-of-sample rank, and the verdict that the strategy family beats luck but its best parameters don't persist">
 </p>
 
 <p align="center">
-  <img src="docs/assets/phone.png" width="260" alt="The lab on a phone: the backtest's headline, its sentence against buying and holding, and the six figures, first on the screen, with a Settings button in the masthead"> <img src="docs/assets/phone-settings.png" width="260" alt="The same phone with Settings open: a sheet with the market, dates, and strategy rises from the bottom, while the total return, annual return, Sharpe ratio, and worst drawdown stay in view above it">
+  <img src="docs/assets/phone.png" width="260" alt="The lab on a phone: a masthead with the market's breadcrumb, Search, and Settings, then the backtest's headline, its sentence against buying and holding, and the six figures, first on the screen"> <img src="docs/assets/phone-settings.png" width="260" alt="The same phone with Settings open: a sheet with a grabber rises from the bottom with the market, dates, and strategy, while the total return and annual return stay in view above it">
 </p>
 
 <p align="center">
-  <img src="docs/assets/walkforward.png" width="425" alt="The walk-forward view: the SMA crossover chosen on four years at a time on Boeing and traded on the next, its out-of-sample equity chained across the windows against buying and holding, and its drawdowns"> <img src="docs/assets/montecarlo.png" width="425" alt="The Monte Carlo view in the night edition: a thousand resampled paths of the RSI(2) pullback on Apple, drawn as percentile bands around the backtest, with the share of paths that lost money and the median return, drawdown, and Sharpe ratio">
+  <img src="docs/assets/walkforward.png" width="425" alt="The walk-forward view: the SMA crossover chosen on four years at a time on Boeing and traded on the next, its out-of-sample equity chained across the windows against buying and holding, and its drawdowns"> <img src="docs/assets/montecarlo.png" width="425" alt="The Monte Carlo view in the dark theme: a thousand resampled paths of the RSI(2) pullback on Apple, drawn as percentile bands around the backtest, with the share of paths that lost money and the median return, drawdown, and Sharpe ratio">
 </p>
 
 ## What it finds
@@ -137,7 +139,7 @@ The windows that looked best on the past kept about half their Sharpe ratio on t
 
 ## The rule language
 
-<img src="docs/assets/rules.png" width="300" align="right" alt="The strategy panel in the night edition: custom rules for Ford with a mistake, the unknown name oversold, underlined in the rule and explained beneath it, with the rule's parameters above">
+<img src="docs/assets/rules.png" width="300" align="right" alt="The settings' strategy section in the dark theme: custom rules for Ford with a mistake, the unknown name oversold, underlined in the rule and explained beneath it, with the rule's parameters above">
 
 ```text
 crossover(ema(close, 12), ema(close, 26)) and rsi(close, 14) < 70
@@ -368,7 +370,8 @@ The loader reads the CSV files of Yahoo, Stooq, Nasdaq.com, and Quandl: it finds
 │   └── golden/                 # requests and their exact responses
 ├── web/
 │   ├── index.html, style.css   # the lab
-│   ├── js/                     # its modules: views, charts, the engine bridge, workers
+│   ├── js/                     # its modules: views, charts, the command menu, the engine bridge, workers
+│   ├── fonts/                  # Geist and Geist Mono, under the SIL Open Font License
 │   ├── nanotrade_wasm.cpp      # the WebAssembly entry points
 │   ├── check.mjs, ui-check.mjs # the golden responses in WebAssembly, and the lab in Chrome
 │   ├── capture.mjs             # this README's images and the link preview
@@ -410,7 +413,7 @@ python3 tools/study.py build/nanotrade --check                # the README's stu
 | CI | Format | clang-format on every C++ file |
 | CI | Data | Downloads the bars again at the pinned commit; every file must match its SHA-256 |
 | CI | Study | Runs the README's study again; every number must match |
-| Pages | Browser build | Builds the engine with Emscripten, checks the golden responses in WebAssembly, then drives the lab in headless Chrome, in WebAssembly and against the native server: the placeholders while the engine starts and a failed start, backtests, sliders, markets, a rule with a mistake and its fix, each research view running as it opens, a sweep marked out of date by a change and run again, a CSV, the keys, the skip link and arrow keys, the editions, a link, and the settings sheet on a phone and a tablet, with no console errors or failed requests. Main is then deployed |
+| Pages | Browser build | Builds the engine with Emscripten, checks the golden responses in WebAssembly, then drives the lab in headless Chrome, in WebAssembly and against the native server: the placeholders while the engine starts and a failed start, backtests, sliders, markets, a rule with a mistake and its fix, each research view running as it opens, a sweep marked out of date by a change and run again, a CSV, the keys, the skip link and arrow keys, the themes and the footer's switch, the command menu and its breadcrumbs, a link, and the settings sheet on a phone and a tablet, with no console errors or failed requests. Main is then deployed |
 
 [`web/capture.mjs`](web/capture.mjs) regenerates this README's images, the demo, and the link preview from the built site.
 
@@ -425,6 +428,7 @@ python3 tools/study.py build/nanotrade --check                # the README's stu
 - The data is the Quandl WIKI prices dataset, in the public domain, as published by [MarketData.jl](https://github.com/JuliaQuant/MarketData.jl) (MIT).
 - The deflated Sharpe ratio is from Bailey and López de Prado, "The Deflated Sharpe Ratio" (2014); the probability of backtest overfitting from Bailey, Borwein, López de Prado, and Zhu, "The Probability of Backtest Overfitting" (2017); the stationary bootstrap from Politis and Romano (1994); and the RSI(2) pullback after Connors and Alvarez.
 - exp and log follow [fdlibm](https://www.netlib.org/fdlibm/); the normal distribution uses Hart's algorithm 5666 as given by West (2005), and Acklam's approximation for its quantile, refined by a Halley step, or beyond 37 standard deviations by Newton's method on the asymptotic series of log Φ.
+- The lab is set in [Geist and Geist Mono](https://vercel.com/font), by Vercel with basement.studio, under the SIL Open Font License 1.1 ([web/fonts/OFL.txt](web/fonts/OFL.txt)), and its layout follows Vercel's dashboard.
 - Built with [CMake](https://cmake.org) and [Emscripten](https://emscripten.org); the checks drive Chrome with [Puppeteer](https://pptr.dev).
 
 Released under the [MIT License](LICENSE).

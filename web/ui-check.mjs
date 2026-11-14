@@ -206,10 +206,11 @@ try {
   check(true, 'Run the sweep runs it on demand');
   before = await backtests(page);
   const [chosenFast] = await page.$$eval('#top tbody tr:first-child td', (cells) => cells.map((cell) => cell.textContent));
-  await page.click('#top tbody tr:first-child');
+  await page.focus('#top tbody tr:first-child');
+  await page.keyboard.press('Enter');
   await nextBacktest(page, before);
   check((await page.$eval('.view[aria-selected="true"]', (tab) => tab.dataset.view)) === 'backtest'
-    && (await text(page, '#dateline')).includes(`fast ${chosenFast}`), 'choosing a combination backtests it');
+    && (await text(page, '#dateline')).includes(`fast ${chosenFast}`), 'choosing a combination, from the keyboard, backtests it');
   await open_view(page, 'walkforward', 'walk');
   check((await count(page, '#folds tbody tr')) > 5, 'a walk-forward test lists its windows');
   check((await count(page, '#walk-kpis .figure')) === 6, 'and its figures');

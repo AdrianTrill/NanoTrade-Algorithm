@@ -16,6 +16,7 @@ export class CommandMenu {
     this.dialog = $('#command');
     this.input = $('#command-input');
     this.list = $('#command-list');
+    this.empty = $('#command-empty');
     this.all = [];
     this.items = [];
     this.active = -1;
@@ -65,8 +66,11 @@ export class CommandMenu {
 
   render() {
     this.active = -1;
+    this.list.hidden = !this.items.length;
+    this.empty.hidden = Boolean(this.items.length);
+    this.empty.textContent = this.items.length ? '' : `Nothing matches “${this.input.value.trim()}”.`;
     if (!this.items.length) {
-      this.list.replaceChildren(element('p', { class: 'command-empty' }, `Nothing matches “${this.input.value.trim()}”.`));
+      this.list.replaceChildren();
       return;
     }
     const groups = [];

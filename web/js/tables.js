@@ -1,5 +1,5 @@
 // Tables under the chart: trades, monthly returns, every metric, and the worst drawdowns.
-import { element } from './dom.js';
+import { clickableRows, element } from './dom.js';
 import { diverging } from './canvas.js';
 import * as format from './format.js';
 import { palette } from './palette.js';
@@ -32,11 +32,13 @@ export function tradesTable(container, trades, { onHover, onSelect }) {
       return sort.descending ? -order : order;
     });
     const head = element('tr', {}, columns.map(([name, , , align], index) => {
-      const th = element('th', { class: `sortable ${(align ?? '').replace('text', '')}`.trim(), scope: 'col' }, name);
+      const button = element('button', { class: 'sort', type: 'button' }, name);
+      const th = element('th', { class: `sortable ${(align ?? '').replace('text', '')}`.trim(), scope: 'col' }, button);
       if (index === sort.column) th.setAttribute('aria-sort', sort.descending ? 'descending' : 'ascending');
-      th.addEventListener('click', () => {
+      button.addEventListener('click', () => {
         sort = { column: index, descending: index === sort.column ? !sort.descending : index !== 0 };
         render();
+        container.querySelector(`th:nth-child(${index + 1}) .sort`)?.focus();
       });
       return th;
     }));
@@ -45,9 +47,12 @@ export function tradesTable(container, trades, { onHover, onSelect }) {
       const row = element('tr', { class: 'clickable' }, columns.map(([, , show, align]) => td(show(trade), align ?? '')));
       row.addEventListener('mouseenter', () => onHover(trade.number - 1));
       row.addEventListener('mouseleave', () => onHover(null));
+      row.addEventListener('focus', () => onHover(trade.number - 1));
+      row.addEventListener('blur', () => onHover(null));
       row.addEventListener('click', () => onSelect(trade.number - 1));
       body.append(row);
     }
+    clickableRows(body);
     const table = element('table', {}, element('thead', {}, head), body);
     const note = rows.length > 2000 ? element('p', { class: 'table-note' }, `Showing 2,000 of ${format.integer(rows.length)} trades; the CSV has them all.`) : null;
     container.replaceChildren(rows.length ? table : element('p', { class: 'table-note' }, 'No trades: the rules never fired in this range.'), note ?? '');
@@ -139,6 +144,7 @@ export function drawdownsTable(container, drawdowns, onSelect) {
     row.addEventListener('click', () => onSelect(d));
     body.append(row);
   }
+  clickableRows(body);
   container.replaceChildren(drawdowns.length ? element('table', {}, element('thead', {}, head), body)
     : element('p', { class: 'table-note' }, 'No drawdowns in this range.'));
 }

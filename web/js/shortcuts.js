@@ -23,6 +23,8 @@ export const SHORTCUTS = [
 
 const typing = (target) => target instanceof HTMLElement
   && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
+const activates = (event) => (event.key === 'Enter' || event.key === ' ') && event.target instanceof Element
+  && event.target.closest('button, a[href], [role="tab"], [role="radio"], [tabindex]:not([tabindex="-1"])');
 
 export function startShortcuts(actions) {
   const list = $('#shortcut-list');
@@ -31,7 +33,7 @@ export function startShortcuts(actions) {
     element('dd', {}, text),
   ]));
   document.addEventListener('keydown', (event) => {
-    if (event.ctrlKey || event.metaKey || event.altKey || typing(event.target)) return;
+    if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || typing(event.target) || activates(event)) return;
     if (document.querySelector('dialog[open]') && event.key !== '?') return;
     const action = actions[event.key] ?? actions[event.key.toLowerCase()];
     if (action) {

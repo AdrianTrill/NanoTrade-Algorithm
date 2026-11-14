@@ -70,6 +70,12 @@
   --crosshair: rgba(0, 0, 0, 0.35);
   --on-accent: #ffffff;
   --code: #0062d1;
+  --syntax-fn: #6d28d9;
+  --syntax-num: #c2410c;
+  --syntax-param: #0f766e;
+  --syntax-kw: #be185d;
+  --pill-up: #146c30;
+  --pill-down: #b91c1c;
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04);
   --shadow-pop: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 4px 8px -4px rgba(0, 0, 0, 0.08), 0 16px 24px -8px rgba(0, 0, 0, 0.12);
   --backdrop: rgba(0, 0, 0, 0.32);
@@ -116,6 +122,12 @@
   --crosshair: rgba(255, 255, 255, 0.4);
   --on-accent: #0a0a0a;
   --code: #52a8ff;
+  --syntax-fn: #b39dfa;
+  --syntax-num: #fb923c;
+  --syntax-param: #2dd4bf;
+  --syntax-kw: #f472b6;
+  --pill-up: #46c37b;
+  --pill-down: #ff6166;
   --shadow-card: none;
   --shadow-pop: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 16px 32px -8px rgba(0, 0, 0, 0.8);
   --backdrop: rgba(0, 0, 0, 0.6);
@@ -1194,7 +1206,7 @@ input[type="range"]:disabled {
 }
 
 .tok-fn {
-  color: var(--o2);
+  color: var(--syntax-fn);
 }
 
 .tok-col {
@@ -1202,16 +1214,16 @@ input[type="range"]:disabled {
 }
 
 .tok-num {
-  color: var(--o1);
+  color: var(--syntax-num);
 }
 
 .tok-param {
-  color: var(--o3);
+  color: var(--syntax-param);
   font-weight: 600;
 }
 
 .tok-kw {
-  color: var(--o5);
+  color: var(--syntax-kw);
   font-weight: 600;
 }
 
@@ -1263,7 +1275,7 @@ input[type="range"]:disabled {
 }
 
 .custom-param span {
-  color: var(--o3);
+  color: var(--syntax-param);
 }
 
 .custom-param input,
@@ -1726,11 +1738,19 @@ button.legend-item:hover {
 }
 
 /* Tables: tabs along the card's top, a sunken header row, hairlines between rows. */
-.tabs {
+.tabs-bar {
   display: flex;
   align-items: center;
+  gap: 8px;
   padding: 0 12px 0 8px;
   border-bottom: 1px solid var(--border);
+}
+
+.tabs {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -1869,12 +1889,18 @@ td.text {
   font: 13px/1.4 var(--font-ui);
 }
 
-th.sortable {
-  cursor: pointer;
-  user-select: none;
+.sort {
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  white-space: nowrap;
 }
 
-th.sortable:hover {
+.sort:hover {
   color: var(--text);
 }
 
@@ -1899,6 +1925,17 @@ tbody tr.clickable {
   cursor: pointer;
 }
 
+tbody tr.clickable:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+  background: var(--hover);
+}
+
+.table-scroll:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
 td.group {
   padding-top: 9px;
   padding-bottom: 9px;
@@ -1919,12 +1956,12 @@ td.group {
 
 .side.long {
   background: var(--up-soft);
-  color: var(--up);
+  color: var(--pill-up);
 }
 
 .side.short {
   background: var(--down-soft);
-  color: var(--down);
+  color: var(--pill-down);
 }
 
 .reason {
@@ -2602,12 +2639,20 @@ td.heat {
     background: var(--hover);
   }
 
-  .search-button span,
   .search-button kbd,
   .tools #help,
-  .tools .source-link,
-  .tools .button span {
+  .tools .source-link {
     display: none;
+  }
+
+  .search-button span,
+  .tools .button span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
   .tools .button {
@@ -2810,7 +2855,7 @@ td.heat {
     min-width: 100%;
   }
 
-  .tabs {
+  .tabs-bar {
     padding: 0 6px 0 4px;
   }
 

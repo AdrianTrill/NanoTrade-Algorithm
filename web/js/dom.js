@@ -68,6 +68,29 @@ export function debounce(fn, delay) {
 
 // A tablist as the keyboard expects one: only the selected tab is in the tab order, and the arrow keys, Home, and
 // End move between the tabs, choosing each as they go.
+// Rows that do something when clicked, reachable from the keyboard as well: Tab enters the table at one row, the arrow
+// keys, Home, and End move between its rows, and Enter or Space does what a click does.
+export function clickableRows(body) {
+  const rows = [...body.rows];
+  rows.forEach((row, index) => (row.tabIndex = index ? -1 : 0));
+  body.addEventListener('keydown', (event) => {
+    const row = event.target.closest('tr');
+    const index = rows.indexOf(row);
+    if (index < 0) return;
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      row.click();
+      return;
+    }
+    const next = { ArrowDown: index + 1, ArrowUp: index - 1, Home: 0, End: rows.length - 1 }[event.key];
+    if (next === undefined || next < 0 || next >= rows.length) return;
+    event.preventDefault();
+    row.tabIndex = -1;
+    rows[next].tabIndex = 0;
+    rows[next].focus();
+  });
+}
+
 export function rovingTabs(list) {
   const tabs = () => [...list.querySelectorAll('[role="tab"]')];
   const sync = () => {

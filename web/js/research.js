@@ -2,7 +2,7 @@
 // Each runs on the batch worker (or the server), so the backtest view stays responsive meanwhile.
 import { niceStep } from './canvas.js';
 import { TimeChart } from './chart.js';
-import { $, element, escapeHtml } from './dom.js';
+import { $, clickableRows, element, escapeHtml } from './dom.js';
 import { Cancelled } from './engine.js';
 import { bars, figure, versus } from './figures.js';
 import * as format from './format.js';
@@ -380,6 +380,7 @@ export class OptimizeView extends ResearchView {
       tr.addEventListener('click', () => this.apply(row.x, row.y));
       body.append(tr);
     }
+    clickableRows(body);
     const notes = r.errors.length ? element('p', { class: 'table-note' }, `${format.integer(r.trials - r.valid)} combinations couldn't run: ${r.errors[0]}`) : null;
     $('#top').replaceChildren(element('table', {}, element('thead', {}, head), body), notes ?? '');
   }

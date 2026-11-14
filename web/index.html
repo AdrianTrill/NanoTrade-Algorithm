@@ -77,7 +77,7 @@
             <button class="crumb" id="crumb-strategy" aria-haspopup="dialog" title="Switch the strategy"><span class="avatar" aria-hidden="true"></span><span class="crumb-text" id="crumb-strategy-label">Strategy</span><svg class="icon"><use href="#i-chevrons"/></svg></button>
           </div>
           <p class="runtime" id="runtime" title="Where the engine runs"><span class="dot"></span><span id="runtime-label">Starting</span><span class="runtime-detail" id="runtime-detail"></span></p>
-          <button class="search-button" id="command-open" aria-haspopup="dialog" aria-label="Search" title="Search markets, strategies, views, and actions"><svg class="icon"><use href="#i-search"/></svg><span>Search…</span><kbd data-mod-k>⌘ K</kbd></button>
+          <button class="search-button" id="command-open" aria-haspopup="dialog" title="Search markets, strategies, views, and actions"><svg class="icon"><use href="#i-search"/></svg><span>Search…</span><kbd data-mod-k aria-hidden="true">⌘ K</kbd></button>
           <button class="spec-toggle" id="spec-toggle" aria-controls="spec" aria-expanded="false" title="The backtest's settings"><svg class="icon"><use href="#i-sliders"/></svg><span>Settings</span></button>
           <nav class="tools" aria-label="Page tools">
             <button class="button small" id="share" title="Copy a link to this backtest (S)"><svg class="icon"><use href="#i-link"/></svg><span>Share</span></button>
@@ -192,17 +192,19 @@
             <p class="source">Scroll or pinch to zoom, drag to pan, double-click for the whole range. Orders are decided at a bar's close and filled at the next bar's open. <span id="chart-source"></span></p>
           </figure>
           <section class="exhibit details" aria-label="Tables">
+            <div class="tabs-bar">
             <div class="tabs" role="tablist" aria-label="Tables">
               <button class="tab" role="tab" id="tab-trades" aria-controls="detail-trades" data-detail="trades" aria-selected="true">Trades<span class="count" id="trade-count"></span></button>
               <button class="tab" role="tab" id="tab-monthly" aria-controls="detail-monthly" data-detail="monthly" aria-selected="false">Monthly returns</button>
               <button class="tab" role="tab" id="tab-metrics" aria-controls="detail-metrics" data-detail="metrics" aria-selected="false">Every metric</button>
               <button class="tab" role="tab" id="tab-drawdowns" aria-controls="detail-drawdowns" data-detail="drawdowns" aria-selected="false">Drawdowns</button>
-              <button class="text-button small push" id="export" title="Download the trades as CSV"><svg class="icon"><use href="#i-download"/></svg><span>CSV</span></button>
             </div>
-            <div class="detail" id="detail-trades" role="tabpanel" aria-labelledby="tab-trades" data-detail-panel="trades"><div class="table-scroll" id="trades"></div></div>
-            <div class="detail" id="detail-monthly" role="tabpanel" aria-labelledby="tab-monthly" data-detail-panel="monthly" hidden><div class="table-scroll" id="monthly"></div></div>
-            <div class="detail" id="detail-metrics" role="tabpanel" aria-labelledby="tab-metrics" data-detail-panel="metrics" hidden><div class="table-scroll" id="metrics"></div></div>
-            <div class="detail" id="detail-drawdowns" role="tabpanel" aria-labelledby="tab-drawdowns" data-detail-panel="drawdowns" hidden><div class="table-scroll" id="drawdowns"></div></div>
+            <button class="text-button small" id="export" title="Download the trades as CSV"><svg class="icon"><use href="#i-download"/></svg><span>CSV</span></button>
+            </div>
+            <div class="detail" id="detail-trades" role="tabpanel" aria-labelledby="tab-trades" data-detail-panel="trades"><div class="table-scroll" id="trades" tabindex="0" role="region" aria-label="Trades"></div></div>
+            <div class="detail" id="detail-monthly" role="tabpanel" aria-labelledby="tab-monthly" data-detail-panel="monthly" hidden><div class="table-scroll" id="monthly" tabindex="0" role="region" aria-label="Monthly returns"></div></div>
+            <div class="detail" id="detail-metrics" role="tabpanel" aria-labelledby="tab-metrics" data-detail-panel="metrics" hidden><div class="table-scroll" id="metrics" tabindex="0" role="region" aria-label="Every metric"></div></div>
+            <div class="detail" id="detail-drawdowns" role="tabpanel" aria-labelledby="tab-drawdowns" data-detail-panel="drawdowns" hidden><div class="table-scroll" id="drawdowns" tabindex="0" role="region" aria-label="Drawdowns"></div></div>
           </section>
         </section>
 
@@ -236,7 +238,7 @@
             </aside>
             <section class="exhibit">
               <div class="exhibit-head"><div class="exhibit-text"><h2 class="exhibit-title">The best combinations</h2><p class="exhibit-sub">Click a row to backtest it.</p></div></div>
-              <div class="table-scroll" id="top"><p class="table-note">Nothing yet.</p></div>
+              <div class="table-scroll" id="top" tabindex="0" role="region" aria-label="The best combinations"><p class="table-note">Nothing yet.</p></div>
             </section>
             <figure class="exhibit">
               <figcaption class="exhibit-head"><div class="exhibit-text"><h2 class="exhibit-title">Winners in and out of sample</h2><p class="exhibit-sub">Split the bars into blocks, pick the best combination on half of them, and score it on the other half: each dot is one split's winner.</p></div></figcaption>
@@ -266,7 +268,7 @@
           </figure>
           <section class="exhibit">
             <div class="exhibit-head"><div class="exhibit-text"><h2 class="exhibit-title">The windows</h2></div></div>
-            <div class="table-scroll" id="folds"><p class="table-note">Nothing yet.</p></div>
+            <div class="table-scroll" id="folds" tabindex="0" role="region" aria-label="The windows"><p class="table-note">Nothing yet.</p></div>
           </section>
         </section>
 
@@ -322,6 +324,7 @@
       <kbd>Esc</kbd>
     </div>
     <div class="command-list" id="command-list" role="listbox" aria-label="Commands"></div>
+    <p class="command-empty" id="command-empty" role="status" hidden></p>
     <footer class="command-foot"><span><kbd>↑</kbd><kbd>↓</kbd> to move</span><span><kbd>↵</kbd> to choose</span><span><kbd>Esc</kbd> to close</span></footer>
   </dialog>
 

@@ -55,6 +55,7 @@ add_library(nanotrade_core
     src/json.cpp
     src/math.cpp
     src/metrics.cpp
+    src/portfolio.cpp
     src/research.cpp
     src/series.cpp
     src/strategy.cpp
@@ -137,6 +138,8 @@ if(BUILD_TESTING AND NOT EMSCRIPTEN)
     add_test(NAME cli_walkforward
              COMMAND nanotrade walkforward --data CAT --strategy rsi_reversion --x period=5:25:5 --is-years 5 --oos-years 2)
     add_test(NAME cli_montecarlo COMMAND nanotrade montecarlo --data BA --strategy momentum --paths 200)
+    add_test(NAME cli_portfolio
+             COMMAND nanotrade portfolio --markets AAPL,GE,F --weights 2,1,1 --rebalance quarterly --from 2000-01-01)
     add_test(NAME cli_custom COMMAND nanotrade run --data F --long "rsi(close, 2) < 10 and close > sma(close, 200)"
                                                      --long-exit "close > sma(close, 5)")
     add_test(NAME cli_rejects_bad_rule COMMAND nanotrade run --long "rsi(close, 14) < oversold")

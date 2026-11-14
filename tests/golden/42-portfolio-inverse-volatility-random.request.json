@@ -1,0 +1,38 @@
+{
+  "command": "portfolio",
+  "portfolio": {
+    "markets": [
+      {
+        "synthetic": {
+          "seed": 3,
+          "bars": 260,
+          "volatility": 0.1
+        }
+      },
+      {
+        "synthetic": {
+          "seed": 4,
+          "bars": 260,
+          "volatility": 0.3
+        }
+      },
+      {
+        "synthetic": {
+          "seed": 5,
+          "bars": 260,
+          "volatility": 0.6
+        }
+      }
+    ],
+    "weighting": "inverse_volatility",
+    "volatility_window": 20,
+    "rebalance": "quarterly"
+  },
+  "strategy": {
+    "id": "buy_hold"
+  },
+  "config": {
+    "commission_bps": 5,
+    "slippage_bps": 5
+  }
+}

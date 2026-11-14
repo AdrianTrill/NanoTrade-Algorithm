@@ -3,6 +3,7 @@
 #include "nanotrade/error.hpp"
 #include "nanotrade/expression.hpp"
 #include "nanotrade/json.hpp"
+#include "nanotrade/portfolio.hpp"
 #include "nanotrade/synthetic.hpp"
 #include "nanotrade/text.hpp"
 
@@ -102,7 +103,7 @@ std::string string_field(const Json* object, std::string_view key) {
     return value != nullptr && value->is_string() ? value->as_string() : std::string();
 }
 
-Entry acquire(const std::string& name) {
+Entry acquire(const std::string& name, const std::string& field = "data") {
     Registry& reg = registry();
     std::string directory;
     Json manifest;
@@ -121,11 +122,11 @@ Entry acquire(const std::string& name) {
     std::vector<std::string> known = dataset_names();
     const std::string hint = text::closest(name, known);
     if (directory.empty() || !file_name(name)) {
-        throw Error("unknown dataset '" + name + "'" + (hint.empty() ? "" : "; did you mean " + hint + "?"), "data");
+        throw Error("unknown dataset '" + name + "'" + (hint.empty() ? "" : "; did you mean " + hint + "?"), field);
     }
     const std::string path = directory + "/" + name + ".csv";
     if (!has_data_file(directory, name + ".csv")) {
-        throw Error("unknown dataset '" + name + "'" + (hint.empty() ? "" : "; did you mean " + hint + "?"), "data");
+        throw Error("unknown dataset '" + name + "'" + (hint.empty() ? "" : "; did you mean " + hint + "?"), field);
     }
     LoadedSeries loaded = load_csv_file(path, name);
     const Json* about = manifest_entry(manifest, name);
@@ -137,7 +138,7 @@ Entry acquire(const std::string& name) {
     dataset.series = std::move(loaded.series);
     dataset.report = std::move(loaded.report);
     register_dataset(std::move(dataset));
-    return acquire(name);
+    return acquire(name, field);
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -244,18 +245,18 @@ struct Window {
     }
 };
 
-Entry resolve_data(const Json& request) {
-    const Json* data = request.find("data");
+// The data a request names at `field`: a dataset's name, or an object with a dataset, a synthetic market, or CSV text.
+Entry resolve_data_at(const Json* data, const std::string& field) {
     if (data == nullptr || data->is_null()) {
-        throw Error("say which data to use, such as \"data\": \"AAPL\"", "data");
+        throw Error("say which data to use, such as \"data\": \"AAPL\"", field);
     }
     if (data->is_string()) {
-        return acquire(data->as_string());
+        return acquire(data->as_string(), field);
     }
-    const Reader reader(data, "data");
+    const Reader reader(data, field);
     reader.allow({"dataset", "synthetic", "csv", "name"});
     if (reader.has("dataset")) {
-        return acquire(reader.string("dataset", ""));
+        return acquire(reader.string("dataset", ""), reader.field("dataset"));
     }
     if (reader.has("synthetic")) {
         const Reader spec_reader = reader.child("synthetic");
@@ -285,7 +286,7 @@ Entry resolve_data(const Json& request) {
                         "% a year, drift " + text::format_number(spec.drift * 100.0) + "% a year";
         dataset.series = synthesize(spec);
         register_dataset(std::move(dataset));
-        return acquire(name);
+        return acquire(name, field);
     }
     if (reader.has("csv")) {
         const std::string name = reader.string("name", "upload");
@@ -299,24 +300,29 @@ Entry resolve_data(const Json& request) {
         auto cache = std::make_shared<indicators::Cache>(dataset->series);
         return {std::move(dataset), std::move(cache), 0};
     }
-    throw Error("data needs a dataset, a synthetic market, or csv", "data");
+    throw Error(field + " needs a dataset, a synthetic market, or csv", field);
 }
 
-Window resolve_window(const Json& request) {
-    Window window;
-    window.entry = resolve_data(request);
-    const BarSeries& bars = window.bars();
+Entry resolve_data(const Json& request) {
+    return resolve_data_at(request.find("data"), "data");
+}
+
+// The dates a request's range names, the last included: a plain date such as 2012-12-31 covers its whole day.
+struct Dates {
+    std::optional<Timestamp> from;
+    std::optional<Timestamp> to;
+};
+
+Dates parse_dates(const Json& request) {
     const Reader reader(request.find("range"), "range");
     reader.allow({"from", "to"});
-    window.begin = 0;
-    window.end = bars.size();
+    Dates dates;
     if (reader.has("from")) {
         const std::string text = reader.string("from", "");
-        const auto from = parse_timestamp(text);
-        if (!from) {
+        dates.from = parse_timestamp(text);
+        if (!dates.from) {
             throw Error("range.from must be a date such as 2005-01-31, not '" + text + "'", "range.from");
         }
-        window.begin = bars.lower_bound(*from);
     }
     if (reader.has("to")) {
         const std::string text = reader.string("to", "");
@@ -324,9 +330,18 @@ Window resolve_window(const Json& request) {
         if (!to) {
             throw Error("range.to must be a date such as 2012-12-31, not '" + text + "'", "range.to");
         }
-        // A plain date includes that whole day.
-        window.end = bars.upper_bound(is_calendar_date(text) ? *to + seconds_per_day - 1 : *to);
+        dates.to = is_calendar_date(text) ? *to + seconds_per_day - 1 : *to;
     }
+    return dates;
+}
+
+Window resolve_window(const Json& request) {
+    Window window;
+    window.entry = resolve_data(request);
+    const BarSeries& bars = window.bars();
+    const Dates dates = parse_dates(request);
+    window.begin = dates.from ? bars.lower_bound(*dates.from) : 0;
+    window.end = dates.to ? bars.upper_bound(*dates.to) : bars.size();
     if (window.end < window.begin + 2) {
         throw Error("the date range holds fewer than two bars of " + window.entry.dataset->name + ", which runs from " +
                         format_date(bars.time.front()) + " to " + format_date(bars.time.back()),
@@ -1105,6 +1120,200 @@ void command_monte_carlo(JsonWriter& w, const Json& request, const Progress& pro
     w.end_object();
 }
 
+const char* weighting_name(Weighting weighting) {
+    switch (weighting) {
+        case Weighting::Fixed:
+            return "fixed";
+        case Weighting::InverseVolatility:
+            return "inverse_volatility";
+        default:
+            return "equal";
+    }
+}
+
+const char* rebalance_name(Rebalance rebalance) {
+    switch (rebalance) {
+        case Rebalance::Never:
+            return "never";
+        case Rebalance::Quarterly:
+            return "quarterly";
+        case Rebalance::Yearly:
+            return "yearly";
+        default:
+            return "monthly";
+    }
+}
+
+PortfolioSpec parse_portfolio(const Reader& reader, std::size_t markets) {
+    PortfolioSpec spec;
+    const bool weighted = reader.has("weights");
+    const std::string weighting = reader.string("weighting", weighted ? "fixed" : "equal");
+    const std::vector<std::string> weightings = {"equal", "fixed", "inverse_volatility"};
+    if (weighting == "equal") {
+        spec.weighting = Weighting::Equal;
+    } else if (weighting == "fixed") {
+        spec.weighting = Weighting::Fixed;
+    } else if (weighting == "inverse_volatility") {
+        spec.weighting = Weighting::InverseVolatility;
+    } else {
+        const std::string hint = text::closest(weighting, weightings);
+        throw Error("portfolio.weighting must be equal, fixed, or inverse_volatility, not '" + weighting + "'" +
+                        (hint.empty() ? "" : "; did you mean " + hint + "?"),
+                    "portfolio.weighting");
+    }
+    if (weighted) {
+        if (spec.weighting != Weighting::Fixed) {
+            throw Error("weights go with fixed weighting, not " + weighting, "portfolio.weights");
+        }
+        const Json* list = reader.get("weights");
+        if (!list->is_array()) {
+            throw Error("portfolio.weights must be a list of numbers, one for each market", "portfolio.weights");
+        }
+        for (std::size_t i = 0; i < list->size(); ++i) {
+            if (!list->items()[i].is_number()) {
+                throw Error("portfolio.weights[" + std::to_string(i) + "] must be a number",
+                            "portfolio.weights[" + std::to_string(i) + "]");
+            }
+            spec.weights.push_back(list->items()[i].as_number());
+        }
+    } else if (spec.weighting == Weighting::Fixed) {
+        throw Error(
+            "fixed weighting needs portfolio.weights, one for each of the " + std::to_string(markets) + " markets",
+            "portfolio.weights");
+    }
+    const std::string rebalance = reader.string("rebalance", "monthly");
+    const std::vector<std::string> schedules = {"never", "monthly", "quarterly", "yearly"};
+    if (rebalance == "never") {
+        spec.rebalance = Rebalance::Never;
+    } else if (rebalance == "monthly") {
+        spec.rebalance = Rebalance::Monthly;
+    } else if (rebalance == "quarterly") {
+        spec.rebalance = Rebalance::Quarterly;
+    } else if (rebalance == "yearly") {
+        spec.rebalance = Rebalance::Yearly;
+    } else {
+        const std::string hint = text::closest(rebalance, schedules);
+        throw Error("portfolio.rebalance must be never, monthly, quarterly, or yearly, not '" + rebalance + "'" +
+                        (hint.empty() ? "" : "; did you mean " + hint + "?"),
+                    "portfolio.rebalance");
+    }
+    spec.volatility_window = reader.whole("volatility_window", spec.volatility_window, 2, 1000);
+    return spec;
+}
+
+void command_portfolio(JsonWriter& w, const Json& request) {
+    if (request.find("data") != nullptr) {
+        throw Error("a portfolio names its markets in portfolio.markets, not data", "data");
+    }
+    const Reader reader(request.find("portfolio"), "portfolio");
+    reader.allow({"markets", "weights", "weighting", "rebalance", "volatility_window"});
+    const Json* list = reader.get("markets");
+    if (list == nullptr || !list->is_array() || list->size() == 0) {
+        throw Error("portfolio.markets must list the markets, such as [\"AAPL\", \"GE\", \"F\"]", "portfolio.markets");
+    }
+    if (list->size() > max_portfolio_markets) {
+        throw Error("a portfolio holds at most " + std::to_string(max_portfolio_markets) + " markets",
+                    "portfolio.markets");
+    }
+    std::vector<Entry> entries;
+    for (std::size_t i = 0; i < list->size(); ++i) {
+        const std::string field = "portfolio.markets[" + std::to_string(i) + "]";
+        Entry entry = resolve_data_at(&list->items()[i], field);
+        for (const Entry& earlier : entries) {
+            if (earlier.dataset->name == entry.dataset->name) {
+                throw Error(field + " repeats " + entry.dataset->name, field);
+            }
+        }
+        entries.push_back(std::move(entry));
+    }
+    const PortfolioSpec spec = parse_portfolio(reader, entries.size());
+    const Dates dates = parse_dates(request);
+    const StrategySpec strategy = parse_strategy(request);
+    const BacktestConfig config = parse_config(request);
+    const Output output = parse_output(request);
+    std::vector<PortfolioMarket> markets;
+    for (const Entry& entry : entries) {
+        markets.push_back({&entry.dataset->series, entry.cache.get()});
+    }
+    const PortfolioResult result = run_portfolio(markets, strategy, config, spec, dates.from, dates.to);
+    const BarSeries& calendar = result.calendar;
+    const BacktestResult& portfolio = result.result;
+
+    w.key("range").begin_object();
+    w.field("from", format_timestamp(calendar.time[portfolio.begin]));
+    w.field("to", format_timestamp(calendar.time[portfolio.end - 1]));
+    w.field("bars", portfolio.end - portfolio.begin);
+    w.end_object();
+    w.key("strategy");
+    write_strategy(w, strategy, result.sleeves.front().report.signals.params);
+    w.key("portfolio").begin_object();
+    w.field("weighting", weighting_name(spec.weighting));
+    w.field("rebalance", rebalance_name(spec.rebalance));
+    w.field("volatility_window", spec.volatility_window);
+    w.field("rebalances", result.rebalances);
+    w.field("rebalance_traded", result.rebalance_traded);
+    w.field("rebalance_cost", result.rebalance_cost);
+    w.end_object();
+    w.key("metrics");
+    write_metrics(w, result.metrics);
+    w.key("benchmark");
+    write_metrics(w, result.benchmark_metrics);
+    w.key("stats").begin_object();
+    w.field("commissions", portfolio.commissions);
+    w.field("slippage", portfolio.slippage);
+    w.field("borrow", portfolio.borrow);
+    w.field("traded_value", portfolio.traded_value);
+    w.field("fills", result.fills);
+    w.field("trimmed", portfolio.trimmed);
+    w.field("ruined", portfolio.ruined);
+    w.field("bars_per_year", portfolio.bars_per_year);
+    w.end_object();
+    w.key("markets").begin_array();
+    for (std::size_t i = 0; i < entries.size(); ++i) {
+        const Dataset& dataset = *entries[i].dataset;
+        const PortfolioSleeve& sleeve = result.sleeves[i];
+        w.begin_object();
+        w.field("name", dataset.name);
+        w.field("title", dataset.title);
+        w.field("source", dataset.source);
+        w.field("target", sleeve.target);
+        w.field("final_weight", sleeve.final_weight);
+        w.field("contribution", sleeve.contribution);
+        w.key("metrics");
+        write_metrics(w, sleeve.report.metrics);
+        w.key("benchmark");
+        write_metrics(w, sleeve.report.benchmark_metrics);
+        w.end_object();
+    }
+    w.end_array();
+    w.key("correlation").begin_array();
+    for (const std::vector<double>& row : result.correlation) {
+        w.numbers(row, series_digits);
+    }
+    w.end_array();
+    if (output.series) {
+        w.key("series").begin_object();
+        w.key("time");
+        write_times(w, calendar, portfolio.begin, portfolio.end);
+        w.key("equity").numbers(portfolio.equity, series_digits);
+        w.key("benchmark").numbers(result.benchmark.equity, series_digits);
+        w.key("drawdown").numbers(drawdown_series(portfolio.equity, portfolio.initial_capital), series_digits);
+        w.key("benchmark_drawdown")
+            .numbers(drawdown_series(result.benchmark.equity, result.benchmark.initial_capital), series_digits);
+        w.key("exposure").numbers(portfolio.exposure, series_digits);
+        w.key("weights").begin_array();
+        for (const PortfolioSleeve& sleeve : result.sleeves) {
+            w.numbers(sleeve.weight, series_digits);
+        }
+        w.end_array();
+        w.end_object();
+    }
+    w.key("calendar");
+    write_calendar(w, calendar, portfolio);
+    w.key("drawdowns");
+    write_drawdowns(w, calendar, portfolio);
+}
+
 }  // namespace
 
 void register_dataset(Dataset dataset) {
@@ -1182,12 +1391,20 @@ std::string handle(std::string_view request_text, const Progress& progress) {
         if (command == nullptr || !command->is_string()) {
             throw Error(
                 "command is required: version, catalog, datasets, load, bars, backtest, sweep, walkforward, "
-                "or montecarlo",
+                "montecarlo, or portfolio",
                 "command");
         }
         const std::string& name = command->as_string();
-        const std::vector<std::string> commands =
-            {"version", "catalog", "datasets", "load", "bars", "backtest", "sweep", "walkforward", "montecarlo"};
+        const std::vector<std::string> commands = {"version",
+                                                   "catalog",
+                                                   "datasets",
+                                                   "load",
+                                                   "bars",
+                                                   "backtest",
+                                                   "sweep",
+                                                   "walkforward",
+                                                   "montecarlo",
+                                                   "portfolio"};
         if (std::find(commands.begin(), commands.end(), name) == commands.end()) {
             const std::string hint = text::closest(name, commands);
             throw Error("unknown command '" + name + "'" + (hint.empty() ? "" : "; did you mean " + hint + "?"),
@@ -1195,8 +1412,16 @@ std::string handle(std::string_view request_text, const Progress& progress) {
         }
         if (name != "load") {
             const Reader reader(&request, "");
-            reader.allow(
-                {"command", "data", "range", "strategy", "config", "sweep", "walkforward", "montecarlo", "output"});
+            reader.allow({"command",
+                          "data",
+                          "range",
+                          "strategy",
+                          "config",
+                          "sweep",
+                          "walkforward",
+                          "montecarlo",
+                          "portfolio",
+                          "output"});
         }
         w.begin_object();
         w.field("ok", true);
@@ -1219,8 +1444,10 @@ std::string handle(std::string_view request_text, const Progress& progress) {
             command_sweep(w, request, progress);
         } else if (name == "walkforward") {
             command_walk_forward(w, request, progress);
-        } else {
+        } else if (name == "montecarlo") {
             command_monte_carlo(w, request, progress);
+        } else {
+            command_portfolio(w, request);
         }
         w.end_object();
         w.end_object();

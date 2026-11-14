@@ -1,0 +1,28 @@
+{
+  "command": "portfolio",
+  "range": {
+    "from": "2005-01-01"
+  },
+  "portfolio": {
+    "markets": [
+      "AAPL",
+      "GE",
+      "F"
+    ],
+    "rebalance": "monthly"
+  },
+  "strategy": {
+    "id": "sma_cross",
+    "params": {
+      "fast": 20,
+      "slow": 100
+    }
+  },
+  "config": {
+    "commission_bps": 1,
+    "slippage_bps": 2
+  },
+  "output": {
+    "series": false
+  }
+}

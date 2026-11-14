@@ -52,6 +52,7 @@ usage:
   nanotrade sweep [options]         try every combination of one or two parameters, and estimate overfitting
   nanotrade walkforward [options]   optimize in sample, trade out of sample, and roll forward
   nanotrade montecarlo [options]    resample the backtest's returns to see what luck could have done
+  nanotrade portfolio [options]     run the strategy on several markets at once, rebalancing between them
   nanotrade serve [options]         serve the lab and its JSON API at http://127.0.0.1:8080
   nanotrade api [FILE]              answer a JSON request from FILE or stdin
   nanotrade api --check|--update DIR  compare DIR/*.request.json with their golden responses, or rewrite them
@@ -89,6 +90,12 @@ sweep and walk-forward:
 
 monte carlo:
   --paths N (1000)  --block N (20)  --seed N (1)
+
+portfolio:
+  --markets A,B,C          the markets, such as AAPL,GE,F (instead of --data)
+  --weights X,Y,Z          fixed weights, one per market, scaled to add up to one; equal without them
+  --weighting NAME         equal, fixed, or inverse-volatility; --vol-window N bars for it (63)
+  --rebalance WHEN         never, monthly (default), quarterly, or yearly
 
 serve:
   --port N (8080)  --host H (127.0.0.1)  --site DIR  --data-dir DIR  --threads N
@@ -153,6 +160,11 @@ struct Options {
     double paths{1000};
     double block{20};
     double seed{1};
+    std::vector<std::string> markets;
+    std::vector<double> weights;
+    std::string weighting;
+    std::string rebalance{"monthly"};
+    double vol_window{63};
     bool json{false};
     std::string data_dir{NANOTRADE_DATA_DIR};
 };
@@ -271,6 +283,25 @@ Options parse_options(const std::vector<std::string>& args) {
             options.block = to_number(value(), flag);
         } else if (flag == "--seed") {
             options.seed = to_number(value(), flag);
+        } else if (flag == "--markets") {
+            std::stringstream list(value());
+            for (std::string market; std::getline(list, market, ',');) {
+                if (!market.empty()) {
+                    options.markets.push_back(market);
+                }
+            }
+        } else if (flag == "--weights") {
+            std::stringstream list(value());
+            for (std::string weight; std::getline(list, weight, ',');) {
+                options.weights.push_back(to_number(weight, flag));
+            }
+        } else if (flag == "--weighting") {
+            options.weighting = value();
+            std::replace(options.weighting.begin(), options.weighting.end(), '-', '_');
+        } else if (flag == "--rebalance") {
+            options.rebalance = value();
+        } else if (flag == "--vol-window") {
+            options.vol_window = to_number(value(), flag);
         } else {
             throw std::invalid_argument("unknown option " + flag + "; see nanotrade --help");
         }
@@ -332,7 +363,34 @@ Json data_spec(const Options& options) {
 Json build_request(const std::string& command, const Options& options) {
     Json request = Json::object();
     request.set("command", command);
-    request.set("data", data_spec(options));
+    if (command == "portfolio") {
+        if (options.markets.empty()) {
+            throw std::invalid_argument("name the markets with --markets, such as --markets AAPL,GE,F");
+        }
+        Json portfolio = Json::object();
+        Json markets = Json::array();
+        for (const std::string& market : options.markets) {
+            Options single = options;
+            single.data = market;
+            markets.push(data_spec(single));
+        }
+        portfolio.set("markets", std::move(markets));
+        if (!options.weights.empty()) {
+            Json weights = Json::array();
+            for (const double weight : options.weights) {
+                weights.push(weight);
+            }
+            portfolio.set("weights", std::move(weights));
+        }
+        if (!options.weighting.empty()) {
+            portfolio.set("weighting", options.weighting);
+        }
+        portfolio.set("rebalance", options.rebalance);
+        portfolio.set("volatility_window", options.vol_window);
+        request.set("portfolio", std::move(portfolio));
+    } else {
+        request.set("data", data_spec(options));
+    }
     if (!options.from.empty() || !options.to.empty()) {
         Json range = Json::object();
         if (!options.from.empty()) {
@@ -434,7 +492,10 @@ void print_header(const Json& result) {
               << grouped(number(range, "bars")) << " bars\n";
 }
 
-void print_metrics_table(const Json& strategy, const Json* benchmark, const char* label) {
+void print_metrics_table(const Json& strategy,
+                         const Json* benchmark,
+                         const char* label,
+                         const char* benchmark_label = "Buy & hold") {
     struct Row {
         const char* name;
         const char* key;
@@ -457,7 +518,7 @@ void print_metrics_table(const Json& strategy, const Json* benchmark, const char
         {"P(Sharpe > 0)", "psr", 4},
     };
     std::cout << '\n'
-              << pad("", 16, false) << pad(label, 14) << (benchmark != nullptr ? pad("Buy & hold", 14) : "") << '\n';
+              << pad("", 16, false) << pad(label, 14) << (benchmark != nullptr ? pad(benchmark_label, 14) : "") << '\n';
     for (const Row& row : rows) {
         const auto show = [&](const Json& metrics) {
             const double v = number(metrics, row.key);
@@ -618,6 +679,54 @@ void print_monte_carlo(const Json& result) {
     std::cout << "\nPaths that lost money: " << percent(number(result, "loss_probability")) << '\n';
 }
 
+void print_portfolio(const Json& result) {
+    const Json& range = *result.find("range");
+    const Json& portfolio = *result.find("portfolio");
+    const Json& markets = *result.find("markets");
+    std::string names;
+    for (const Json& market : markets.items()) {
+        names += (names.empty() ? "" : ", ") + market.find("name")->as_string();
+    }
+    const std::string weighting = portfolio.find("weighting")->as_string();
+    std::cout << "Portfolio of " << names << ", " << range.find("from")->as_string() << " to "
+              << range.find("to")->as_string() << ", " << grouped(number(range, "bars")) << " shared bars\n";
+    const Json& strategy = *result.find("strategy");
+    std::cout << strategy.find("name")->as_string();
+    const Json& params = *strategy.find("params");
+    for (std::size_t i = 0; i < params.size(); ++i) {
+        std::cout << (i == 0 ? ": " : ", ") << params.keys()[i] << ' '
+                  << nanotrade::text::format_number(params.items()[i].as_number());
+    }
+    std::cout << "; " << (weighting == "inverse_volatility" ? "inverse-volatility" : weighting)
+              << " weights, rebalanced " << portfolio.find("rebalance")->as_string() << "\n\n";
+    std::cout << "  market   weight   final     CAGR   Sharpe   max drawdown   trades   contribution\n";
+    for (const Json& market : markets.items()) {
+        const Json& m = *market.find("metrics");
+        std::cout << "  " << pad(market.find("name")->as_string(), 6, false)
+                  << pad(percent(number(market, "target")), 9) << pad(percent(number(market, "final_weight")), 8)
+                  << pad(percent(number(m, "cagr")), 9) << pad(fixed(number(m, "sharpe"), 2), 9)
+                  << pad(percent(number(m, "max_drawdown")), 15) << pad(grouped(number(m, "trades")), 9)
+                  << pad(percent(number(market, "contribution")), 15) << '\n';
+    }
+    print_metrics_table(*result.find("metrics"), result.find("benchmark"), "Portfolio", "Held");
+    std::cout << "\nRebalanced " << grouped(number(portfolio, "rebalances")) << " times, trading "
+              << grouped(number(portfolio, "rebalance_traded")) << " for "
+              << grouped(number(portfolio, "rebalance_cost")) << " in costs\n";
+    std::cout << "\nCorrelations of the markets' daily returns\n" << pad("", 8);
+    for (const Json& market : markets.items()) {
+        std::cout << pad(market.find("name")->as_string(), 7);
+    }
+    std::cout << '\n';
+    const auto& rows = result.find("correlation")->items();
+    for (std::size_t a = 0; a < rows.size(); ++a) {
+        std::cout << "  " << pad(markets.items()[a].find("name")->as_string(), 6, false);
+        for (const Json& value : rows[a].items()) {
+            std::cout << pad(value.is_number() ? fixed(value.as_number(), 2) : "-", 7);
+        }
+        std::cout << '\n';
+    }
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // Subcommands
 
@@ -694,12 +803,14 @@ int run_research(const std::string& command, const std::vector<std::string>& arg
         std::cout << nanotrade::api::with_meta(std::move(response), "native", ms) << '\n';
         return 0;
     }
-    ProgressLine progress(command != "run");
+    ProgressLine progress(command != "run" && command != "portfolio");
     const Json response = call(request, progress.callback());
     progress.clear();
     const Json& result = *response.find("result");
     if (command == "run") {
         print_backtest(result);
+    } else if (command == "portfolio") {
+        print_portfolio(result);
     } else if (command == "sweep") {
         print_sweep(result);
     } else if (command == "walkforward") {
@@ -1043,7 +1154,8 @@ int main(int argc, char** argv) {
         }
         const std::string command = args[0];
         const std::vector<std::string> rest(args.begin() + 1, args.end());
-        if (command == "run" || command == "sweep" || command == "walkforward" || command == "montecarlo") {
+        if (command == "run" || command == "sweep" || command == "walkforward" || command == "montecarlo" ||
+            command == "portfolio") {
             return run_research(command, rest);
         }
         if (command == "api") {

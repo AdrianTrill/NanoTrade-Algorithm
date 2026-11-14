@@ -1,0 +1,9 @@
+{
+  "command": "portfolio",
+  "portfolio": {
+    "markets": [
+      "AAPL",
+      "BAA"
+    ]
+  }
+}

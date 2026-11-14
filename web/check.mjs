@@ -21,15 +21,26 @@ const engine = await createNanoTrade();
 const manifest = JSON.parse(readFileSync(join(siteDir, 'data', 'manifest.json'), 'utf8'));
 const loaded = new Set();
 
+// The bundled datasets a request names: its data, or a portfolio's markets.
+function datasetsOf(request) {
+  const names = typeof request?.data === 'string' ? [request.data] : [];
+  for (const market of request?.portfolio?.markets ?? []) {
+    const name = typeof market === 'string' ? market : market?.dataset;
+    if (typeof name === 'string') names.push(name);
+  }
+  return names;
+}
+
 function ensureDataset(request) {
-  const name = typeof request?.data === 'string' ? request.data : null;
-  const entry = manifest.datasets.find((d) => d.symbol === name);
-  if (!entry || loaded.has(name)) return;
-  const csv = readFileSync(join(siteDir, 'data', entry.file), 'utf8');
-  const load = { command: 'load', name, title: entry.name, notes: entry.notes, source: manifest.source, csv };
-  const response = JSON.parse(engine.handleExact(JSON.stringify(load)));
-  if (!response.ok) throw new Error(`loading ${name}: ${response.error.message}`);
-  loaded.add(name);
+  for (const name of datasetsOf(request)) {
+    const entry = manifest.datasets.find((d) => d.symbol === name);
+    if (!entry || loaded.has(name)) continue;
+    const csv = readFileSync(join(siteDir, 'data', entry.file), 'utf8');
+    const load = { command: 'load', name, title: entry.name, notes: entry.notes, source: manifest.source, csv };
+    const response = JSON.parse(engine.handleExact(JSON.stringify(load)));
+    if (!response.ok) throw new Error(`loading ${name}: ${response.error.message}`);
+    loaded.add(name);
+  }
 }
 
 const requests = readdirSync(goldenDir).filter((name) => name.endsWith('.request.json')).sort();

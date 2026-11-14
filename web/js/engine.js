@@ -87,7 +87,15 @@ class Latest {
   }
 }
 
-const datasetOf = (request) => (typeof request.data === 'string' ? request.data : null);
+// The datasets a request names: its data, or a portfolio's markets.
+function datasetsOf(request) {
+  const names = typeof request.data === 'string' ? [request.data] : [];
+  for (const market of request.portfolio?.markets ?? []) {
+    const name = typeof market === 'string' ? market : market?.dataset;
+    if (typeof name === 'string') names.push(name);
+  }
+  return names;
+}
 
 class WasmEngine {
   constructor(manifest) {
@@ -123,14 +131,16 @@ class WasmEngine {
     return this.fetches.get(name);
   }
 
+  // Loads the datasets a request names into a worker that doesn't have them yet, fetching them all at once.
   async prepare(handle, request) {
-    const name = datasetOf(request);
-    if (!name || handle.loaded.has(name)) return;
-    const text = await this.source(name);
-    if (!text) return;  // unknown: the engine answers with a helpful error
-    const response = JSON.parse(await handle.call(text));
-    if (!response.ok) throw new Error(response.error.message);
-    handle.loaded.add(name);
+    const names = datasetsOf(request).filter((name) => !handle.loaded.has(name));
+    const texts = await Promise.all(names.map((name) => this.source(name)));
+    for (const [i, text] of texts.entries()) {
+      if (!text || handle.loaded.has(names[i])) continue;  // unknown: the engine answers with a helpful error
+      const response = JSON.parse(await handle.call(text));
+      if (!response.ok) throw new Error(response.error.message);
+      handle.loaded.add(names[i]);
+    }
   }
 
   async call(handle, request, progress) {

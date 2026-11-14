@@ -1,4 +1,5 @@
-// The research views: a parameter sweep with its overfitting measures, a walk-forward test, and Monte Carlo resampling.
+// The research views: a parameter sweep with its overfitting measures, a walk-forward test, and Monte Carlo resampling;
+// the portfolio view, in portfolio.js, is one too.
 // Each runs on the batch worker (or the server), so the backtest view stays responsive meanwhile.
 import { niceStep } from './canvas.js';
 import { TimeChart } from './chart.js';
@@ -177,7 +178,7 @@ class Runner {
 // What the three research views share. Each runs itself when it opens, and when the settings change while it's open,
 // if the work is small enough to take a second or two; otherwise its last result stays, dimmed and marked out of
 // date, until it's run again.
-class ResearchView {
+export class ResearchView {
   constructor({ view, engine, context, onError, button, progress, empty, status, limit, running }) {
     this.view = view;
     this.engine = engine;

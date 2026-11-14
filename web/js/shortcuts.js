@@ -6,7 +6,7 @@ export const MOD = /mac|iphone|ipad/i.test(navigator.userAgentData?.platform || 
 
 export const SHORTCUTS = [
   [`${MOD} K`, 'Search markets, strategies, views, and actions'],
-  ['1 2 3 4', 'Backtest, optimize, walk-forward, or Monte Carlo'],
+  ['1 2 3 4 5', 'Backtest, optimize, walk-forward, Monte Carlo, or portfolio'],
   ['[ ]', 'The previous or next market'],
   ['N', 'Another random market'],
   ['O', 'Open a CSV of daily bars'],

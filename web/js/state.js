@@ -26,7 +26,11 @@ export const DEFAULTS = {
   sweep: { x: null, y: null, metric: 'sharpe' },
   walk: { isYears: 4, oosYears: 1, anchored: false },
   monte: { paths: 1000, block: 20, seed: 1 },
+  portfolio: { markets: ['AAPL', 'BA', 'CAT', 'F', 'GE'], weighting: 'equal', weights: {}, rebalance: 'monthly' },
 };
+
+const WEIGHTINGS = ['equal', 'inverse_volatility', 'fixed'];
+const SCHEDULES = ['monthly', 'quarterly', 'yearly', 'never'];
 
 export const state = structuredClone(DEFAULTS);
 
@@ -63,6 +67,16 @@ export function toQuery() {
     if (state.sweep.x) q.set('sx_', `${state.sweep.x.param}:${state.sweep.x.from}:${state.sweep.x.to}:${state.sweep.x.step}`);
     if (state.sweep.y) q.set('sy_', `${state.sweep.y.param}:${state.sweep.y.from}:${state.sweep.y.to}:${state.sweep.y.step}`);
     put('m', state.sweep.metric, DEFAULTS.sweep.metric);
+  }
+  // As do the portfolio's markets and weights, on its view.
+  if (state.view === 'portfolio') {
+    put('pm', state.portfolio.markets.join(','), DEFAULTS.portfolio.markets.join(','));
+    put('pw', state.portfolio.weighting, DEFAULTS.portfolio.weighting);
+    put('pr', state.portfolio.rebalance, DEFAULTS.portfolio.rebalance);
+    if (state.portfolio.weighting === 'fixed') {
+      const weights = state.portfolio.markets.map((name) => `${name}:${state.portfolio.weights[name] ?? 1}`).join(',');
+      if (weights) q.set('pf', weights);
+    }
   }
   // Settings of the page rather than of the backtest, such as ?runtime=wasm, stay as they were.
   const current = new URLSearchParams(location.search);
@@ -105,6 +119,15 @@ export function fromQuery(search) {
   state.sweep.x = axis('sx_');
   state.sweep.y = axis('sy_');
   state.sweep.metric = text('m', DEFAULTS.sweep.metric);
+  state.portfolio = structuredClone(DEFAULTS.portfolio);
+  if (q.has('pm')) state.portfolio.markets = q.get('pm').split(',').filter(Boolean);
+  if (WEIGHTINGS.includes(q.get('pw'))) state.portfolio.weighting = q.get('pw');
+  if (SCHEDULES.includes(q.get('pr'))) state.portfolio.rebalance = q.get('pr');
+  for (const pair of (q.get('pf') ?? '').split(',')) {
+    const at = pair.lastIndexOf(':');
+    const value = Number(pair.slice(at + 1));
+    if (at > 0 && Number.isFinite(value) && value >= 0) state.portfolio.weights[pair.slice(0, at)] = value;
+  }
 }
 
 export function saveQuery() {

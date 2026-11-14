@@ -242,6 +242,27 @@ try {
   check((await count(page, '#histograms canvas')) === 3, 'Monte Carlo resampling draws its three distributions');
   await shoot(page, 'montecarlo');
 
+  // A portfolio of the strategy on several markets.
+  await open_view(page, 'portfolio', 'portfolio');
+  check((await count(page, '#port-kpis .figure')) === 6 && (await count(page, '#port-markets tbody tr')) === 5
+    && (await count(page, '#port-correlation tbody tr')) === 5, 'a portfolio of five markets reports its figures, each market, and their correlations');
+  check((await text(page, '#crumb-data-label')).startsWith('Portfolio'), 'and the breadcrumb names its markets');
+  let portfolios = await runs(page, 'portfolio');
+  await page.click('#port-fields .chip[data-market="CAT"]');
+  await nextRun(page, 'portfolio', portfolios);
+  check((await count(page, '#port-markets tbody tr')) === 4, 'dropping a market runs it again without that market');
+  portfolios = await runs(page, 'portfolio');
+  await page.select('#port-fields select[aria-label="Weights"]', 'fixed');
+  await nextRun(page, 'portfolio', portfolios);
+  check((await count(page, '#port-weights input')) === 4 && (await page.evaluate(() => location.search)).includes('pw=fixed'),
+    'fixed weights take a weight for each market, and the link keeps them');
+  await shoot(page, 'portfolio');
+  before = await backtests(page);
+  await page.click('#port-markets tbody tr:last-child');
+  await nextBacktest(page, before);
+  check((await page.$eval('.view[aria-selected="true"]', (tab) => tab.dataset.view)) === 'backtest'
+    && /on General Electric/.test(await text(page, '#headline')), 'a market\'s row backtests it alone');
+
   // Keys, themes, the reference, and a file.
   await page.keyboard.press('1');
   check((await page.$eval('.view[aria-selected="true"]', (tab) => tab.dataset.view)) === 'backtest', '1 returns to the backtest');

@@ -9,14 +9,16 @@ import { highlight } from './editor.js';
 import * as format from './format.js';
 import { Drawer, trackMasthead } from './layout.js';
 import { runtime } from './runtime.js';
+import { PortfolioView } from './portfolio.js';
 import { MonteCarloView, OptimizeView, WalkForwardView } from './research.js';
 import { startShortcuts } from './shortcuts.js';
 import { dataSpec, fromQuery, request, saveQuery, state } from './state.js';
 import { currentTheme, setTheme, startTheme, themeChoice, toggleTheme } from './theme.js';
 import { toast } from './toast.js';
 
-const VIEWS = ['backtest', 'optimize', 'walkforward', 'montecarlo'];
-const VIEW_COMMANDS = [['backtest', 'Backtest', 'chart'], ['optimize', 'Optimize', 'grid'], ['walkforward', 'Walk-forward', 'steps'], ['montecarlo', 'Monte Carlo', 'dice']];
+const VIEWS = ['backtest', 'optimize', 'walkforward', 'montecarlo', 'portfolio'];
+const VIEW_COMMANDS = [['backtest', 'Backtest', 'chart'], ['optimize', 'Optimize', 'grid'], ['walkforward', 'Walk-forward', 'steps'],
+  ['montecarlo', 'Monte Carlo', 'dice'], ['portfolio', 'Portfolio', 'layers']];
 const SOURCE = 'https://github.com/AdrianTrill/NanoTrade-Algorithm';
 
 const EXAMPLES = [
@@ -69,6 +71,17 @@ class App {
     this.optimize = new OptimizeView({ engine: this.engine, catalog: this.catalog, context, onApply: (params) => this.applyParams(params), onError });
     this.walk = new WalkForwardView({ engine: this.engine, catalog: this.catalog, context, onError });
     this.monte = new MonteCarloView({ engine: this.engine, context, onError });
+    this.portfolio = new PortfolioView({
+      engine: this.engine,
+      context,
+      onError,
+      markets: () => [
+        ...this.manifest.datasets.map((d) => ({ name: d.symbol, label: d.symbol, title: d.name })),
+        ...this.controls.uploads.map((u) => ({ name: u.name, label: u.title, title: `${u.title}, opened in this page` })),
+      ],
+      onOpen: (name) => this.openMarket(name),
+      onChange: () => this.updateCrumbs(),
+    });
     startTheme(() => this.redraw());
     // Geist can arrive after the first drawing, which then used a fallback: the canvases draw again in it.
     document.fonts?.addEventListener('loadingdone', () => this.redraw());
@@ -85,6 +98,7 @@ class App {
       2: () => this.showView('optimize'),
       3: () => this.showView('walkforward'),
       4: () => this.showView('montecarlo'),
+      5: () => this.showView('portfolio'),
       '[': () => this.stepDataset(-1),
       ']': () => this.stepDataset(1),
       n: () => {
@@ -116,6 +130,7 @@ class App {
         if (state.view === 'optimize') this.optimize.run();
         else if (state.view === 'walkforward') this.walk.run();
         else if (state.view === 'montecarlo') this.monte.run();
+        else if (state.view === 'portfolio') this.portfolio.run();
       },
     };
     startShortcuts(actions);
@@ -123,7 +138,15 @@ class App {
     $('#api-open').addEventListener('click', actions.a);
     this.menu = new CommandMenu(() => this.commands(actions));
     $('#command-open').addEventListener('click', () => this.menu.open());
-    $('#crumb-data').addEventListener('click', () => this.menu.open('data'));
+    // On the portfolio view the market's breadcrumb names the portfolio's markets, and leads to where they're chosen.
+    $('#crumb-data').addEventListener('click', () => {
+      if (state.view !== 'portfolio') {
+        this.menu.open('data');
+        return;
+      }
+      $('#port-fields').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      $('#port-fields .chip')?.focus({ preventScroll: true });
+    });
     $('#crumb-strategy').addEventListener('click', () => this.menu.open('strategy'));
     this.updateCrumbs();
     this.refreshResearch();
@@ -134,6 +157,8 @@ class App {
 
   showView(view) {
     state.view = view;
+    document.documentElement.dataset.view = view;
+    this.updateCrumbs();
     for (const tab of $$('.view')) tab.setAttribute('aria-selected', String(tab.dataset.view === view));
     for (const panel of $$('.view-panel')) panel.hidden = panel.dataset.panel !== view;
     saveQuery();
@@ -144,7 +169,7 @@ class App {
   // Lets the research views catch up with the settings: the open one reruns if that's quick, and the others mark
   // their results out of date.
   syncResearch(options) {
-    for (const view of [this.optimize, this.walk, this.monte]) view.sync(options);
+    for (const view of [this.optimize, this.walk, this.monte, this.portfolio]) view.sync(options);
   }
 
   // Draws the open view's charts again, in the theme's colors and fonts. A hidden view's wait until it's shown, which
@@ -163,6 +188,8 @@ class App {
     } else if (state.view === 'montecarlo') {
       this.monte.renderFan();
       this.monte.redraw();
+    } else if (state.view === 'portfolio') {
+      this.portfolio.redraw();
     }
   }
 
@@ -170,6 +197,7 @@ class App {
     this.optimize.refresh();
     this.walk.refresh();
     this.monte.refresh();
+    this.portfolio.refresh();
   }
 
   changed(what) {
@@ -181,15 +209,23 @@ class App {
     this.scheduleBacktest();
   }
 
-  // The breadcrumbs name the market and the strategy, each with its avatar.
+  // The breadcrumbs name the market and the strategy, each with its avatar; on the portfolio view, its markets.
   updateCrumbs() {
+    if (!this.controls) return;
     const info = this.controls.datasetInfo();
-    const market = state.data === 'random' ? 'Random market' : info?.symbol ? `${info.symbol} · ${info.name}` : info?.title ?? state.data;
-    const strategy = this.controls.strategyInfo()?.name ?? state.strategy;
-    for (const [id, label, key] of [['data', market, state.data], ['strategy', strategy, state.strategy]]) {
-      $(`#crumb-${id}-label`).textContent = label;
-      $(`#crumb-${id} .avatar`).replaceWith(avatar(key));
+    let market = state.data === 'random' ? 'Random market' : info?.symbol ? `${info.symbol} · ${info.name}` : info?.title ?? state.data;
+    let key = state.data;
+    if (state.view === 'portfolio') {
+      const chosen = this.portfolio.chosen();
+      market = chosen.length ? `Portfolio · ${chosen.join(', ')}` : 'Portfolio';
+      key = 'portfolio';
     }
+    const strategy = this.controls.strategyInfo()?.name ?? state.strategy;
+    for (const [id, label, name] of [['data', market, key], ['strategy', strategy, state.strategy]]) {
+      $(`#crumb-${id}-label`).textContent = label;
+      $(`#crumb-${id} .avatar`).replaceWith(avatar(name));
+    }
+    $('#crumb-data').title = state.view === 'portfolio' ? 'Choose the portfolio\'s markets' : 'Switch the market';
   }
 
   // What the command menu offers, as it opens: the views, the markets, the strategies, and the page's actions.
@@ -244,8 +280,16 @@ class App {
 
   // The request the open view sends: its research run, or the backtest when it has none yet.
   currentRequest() {
-    const view = { optimize: this.optimize, walkforward: this.walk, montecarlo: this.monte }[state.view];
+    const view = { optimize: this.optimize, walkforward: this.walk, montecarlo: this.monte, portfolio: this.portfolio }[state.view];
     return view?.job() ?? request('backtest');
+  }
+
+  // Backtests one market alone, from its row in the portfolio's table.
+  openMarket(name) {
+    state.data = name;
+    this.controls.renderAll();
+    this.showView('backtest');
+    this.changed('data');
   }
 
   // Chooses an option as if from its select, so the change goes the way a choice there goes.
@@ -395,6 +439,7 @@ class App {
     }
     const dataset = response.result.dataset;
     this.controls.addUpload(dataset);
+    this.portfolio.refresh();
     const report = dataset.report;
     const notes = [];
     if (report.reversed) notes.push('it was newest first');

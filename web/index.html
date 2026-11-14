@@ -51,6 +51,7 @@
     <symbol id="i-x" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
     <symbol id="i-function" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4.5c-2.5-.8-4 .3-4.5 3L8.5 18c-.5 2.7-2 3.6-4.5 2.8"/><path d="M7 10h7"/><path d="m14.5 13 5 5M19.5 13l-5 5"/></g></symbol>
     <symbol id="i-sliders" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></g></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="m12 3.5 9 4.5-9 4.5L3 8Z"/><path d="m3 12 9 4.5 9-4.5M3 16l9 4.5 9-4.5"/></g></symbol>
     <symbol id="i-pin" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3.5h6M10 3.5v5.5l-3 3.5h10l-3-3.5V3.5M12 12.5v8"/></g></symbol>
     <symbol id="i-copy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="8.5" y="8.5" width="12" height="12" rx="2"/><path d="M15.5 8.5V5.5a2 2 0 0 0-2-2h-8a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h3"/></g></symbol>
     <symbol id="i-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></g></symbol>
@@ -96,6 +97,7 @@
             <button class="view" role="tab" id="tab-optimize" aria-controls="panel-optimize" data-view="optimize" aria-selected="false" title="Optimize (2)">Optimize</button>
             <button class="view" role="tab" id="tab-walkforward" aria-controls="panel-walkforward" data-view="walkforward" aria-selected="false" title="Walk-forward (3)">Walk-forward</button>
             <button class="view" role="tab" id="tab-montecarlo" aria-controls="panel-montecarlo" data-view="montecarlo" aria-selected="false" title="Monte Carlo (4)">Monte Carlo</button>
+            <button class="view" role="tab" id="tab-portfolio" aria-controls="panel-portfolio" data-view="portfolio" aria-selected="false" title="Portfolio (5)">Portfolio</button>
           </nav>
         </div>
       </div>
@@ -110,7 +112,8 @@
         </header>
         <section class="spec-section">
           <header class="spec-head"><h2>Data</h2></header>
-          <div class="field">
+          <p class="note portfolio-note">The Portfolio view chooses its own markets, above its results. The dates, the strategy, and the costs here apply to all of them.</p>
+          <div class="field market-field">
             <label class="field-label" for="dataset">Market</label>
             <div class="select-row">
               <select id="dataset"><option>Loading…</option></select>
@@ -299,6 +302,37 @@
             <div class="chart-wrap"><canvas id="fan"></canvas><div class="tooltip" id="fan-tip" hidden></div><div class="empty" id="fan-empty">Resample the backtest's daily returns to see the outcomes its edge and luck allow.</div></div>
           </figure>
           <div class="histograms" id="histograms"></div>
+        </section>
+
+        <section class="view-panel" id="panel-portfolio" role="tabpanel" aria-labelledby="tab-portfolio" data-panel="portfolio" hidden>
+          <header class="lede">
+            <p class="kicker">Portfolio</p>
+            <h1>One strategy, several markets</h1>
+            <p class="deck">The strategy trades each market in a sleeve of the capital, just as it would alone, and the sleeves are set back to their weights on a schedule. Markets that don't move together smooth the whole; the benchmark is the same markets bought and held.</p>
+          </header>
+          <div class="run-strip">
+            <div class="run-fields" id="port-fields"></div>
+            <div class="run-actions">
+              <span class="estimate" id="port-estimate"></span>
+              <button class="button primary" id="port-run"><svg class="icon"><use href="#i-play"/></svg><span>Run the portfolio</span></button>
+            </div>
+            <div class="progress" id="port-progress" hidden><div></div></div>
+          </div>
+          <div class="figures" id="port-kpis"></div>
+          <figure class="exhibit">
+            <figcaption class="exhibit-head"><div class="exhibit-text"><h2 class="exhibit-title">Equity, allocation, and drawdown</h2><p class="exhibit-sub">The portfolio against the same markets held; each market's share of it, drifting and set back; and the drawdowns of both.</p><div class="legend" id="port-legend"></div></div></figcaption>
+            <div class="chart-wrap port-chart"><canvas id="port-chart" aria-label="The portfolio's equity against the same markets held, each market's share of the portfolio over time, and the drawdowns"></canvas><div class="tooltip" id="port-tip" hidden></div><div class="empty" id="port-empty">Choose two markets or more to run the strategy on all of them at once.</div></div>
+          </figure>
+          <div class="port-grid">
+            <section class="exhibit">
+              <div class="exhibit-head"><div class="exhibit-text"><h2 class="exhibit-title">The markets</h2><p class="exhibit-sub">What the strategy did in each market alone, and what it added to the whole. Click a row to backtest it.</p></div></div>
+              <div class="table-scroll" id="port-markets" tabindex="0" role="region" aria-label="The markets"><p class="table-note">Nothing yet.</p></div>
+            </section>
+            <section class="exhibit">
+              <div class="exhibit-head"><div class="exhibit-text"><h2 class="exhibit-title">How they moved together</h2><p class="exhibit-sub">Correlations of the strategy's daily returns in each pair of markets: the lower, the more they diversify.</p></div></div>
+              <div class="table-scroll" id="port-correlation" tabindex="0" role="region" aria-label="Correlations"><p class="table-note">Nothing yet.</p></div>
+            </section>
+          </div>
         </section>
       </main>
     </div>

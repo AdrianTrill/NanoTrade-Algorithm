@@ -2318,6 +2318,79 @@ td.heat {
   gap: 16px;
 }
 
+/* The portfolio: its chart, then the markets and their correlations side by side. */
+.chart-wrap.port-chart {
+  height: clamp(480px, 64vh, 700px);
+}
+
+/* The markets, then their correlations, as wide as their matrix: the page is never wide enough for both side by side
+   with every column showing. */
+.port-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.port-grid > .exhibit:last-child {
+  justify-self: start;
+  max-width: 100%;
+}
+
+.run-field.markets-field {
+  flex: 1 1 320px;
+  max-width: 560px;
+}
+
+.run-field.weights-field {
+  flex: 1 1 100%;
+}
+
+.market-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.market-cell b {
+  font-weight: 500;
+}
+
+.market-cell .swatch.block {
+  border-radius: 3px;
+}
+
+table.correlation td,
+table.correlation th {
+  padding-right: 14px;
+  padding-left: 14px;
+  text-align: center;
+}
+
+table.correlation th:first-child {
+  padding-left: 20px;
+  text-align: left;
+}
+
+table.correlation tbody th {
+  color: var(--text);
+  font: 500 13px/1.4 var(--font-ui);
+}
+
+table.correlation td.heat {
+  color: var(--text);
+}
+
+/* On the portfolio view the market chosen in the settings is the backtest's, not the portfolio's: a note says so. */
+.portfolio-note {
+  display: none;
+  margin: -4px 0 0;
+}
+
+[data-view="portfolio"] .portfolio-note {
+  display: block;
+}
+
 .histograms .chart-wrap {
   height: 220px;
 }

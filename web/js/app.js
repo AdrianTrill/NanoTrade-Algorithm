@@ -7,7 +7,6 @@ import { connect, Superseded } from './engine.js';
 import { highlight } from './editor.js';
 import * as format from './format.js';
 import { Drawer, trackMasthead } from './layout.js';
-import { readPalette } from './palette.js';
 import { runtime } from './runtime.js';
 import { MonteCarloView, OptimizeView, WalkForwardView } from './research.js';
 import { startShortcuts } from './shortcuts.js';
@@ -142,15 +141,22 @@ class App {
     for (const view of [this.optimize, this.walk, this.monte]) view.sync(options);
   }
 
+  // Draws the open view's charts again, in the theme's colors and fonts. A hidden view's wait until it's shown, which
+  // calls this again.
   redraw() {
-    this.backtest.chart.draw();
-    this.walk.chart.draw();
-    this.monte.chart.draw();
-    this.optimize.redraw();
-    this.monte.redraw();
-    if (this.backtest.result) {
-      this.backtest.renderLegend();
-      this.backtest.renderChart(true);
+    if (state.view === 'backtest') {
+      this.backtest.chart.draw();
+      if (this.backtest.result) {
+        this.backtest.renderLegend();
+        this.backtest.renderChart(true);
+      }
+    } else if (state.view === 'optimize') {
+      this.optimize.redraw();
+    } else if (state.view === 'walkforward') {
+      this.walk.redraw();
+    } else if (state.view === 'montecarlo') {
+      this.monte.renderFan();
+      this.monte.redraw();
     }
   }
 
@@ -312,7 +318,7 @@ class App {
     this.controls.showError(null);
     this.backtest.setLoading(false);
     this.backtest.setStale(false);
-    this.backtest.render(result, bars, response.meta);
+    await this.backtest.render(result, bars, response.meta);
     if (response.meta) $('#runtime-detail').textContent = `${format.number(response.meta.ms, 1)} ms`;
     this.backtests += 1;
     this.backtestOk = true;
@@ -451,7 +457,6 @@ class App {
 async function main() {
   trackMasthead();
   const drawer = new Drawer();
-  readPalette();
   fromQuery(location.search);
   if (runtime === 'native') $('#kicker').textContent = 'Connecting to the native engine';
   try {

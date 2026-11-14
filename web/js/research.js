@@ -498,6 +498,31 @@ export class WalkForwardView extends ResearchView {
       figure('Windows', format.integer(result.folds.length), `${distinct} different choices`),
       figure('Trades', format.integer(m.trades), `${format.percent(m.win_rate, 0)} won`),
     );
+    this.renderChart(false);
+    const head = element('tr', {}, ['Traded', 'Chosen on the years before', 'Sharpe in', 'Sharpe out', 'Annual, out', 'Drawdown, out', 'Trades']
+      .map((name, i) => element('th', { scope: 'col', class: i < 2 ? 'left' : '' }, name)));
+    const body = element('tbody');
+    for (const fold of result.folds) {
+      const chosen = `${result.x_param} ${format.number(fold.x, 2)}${result.y_param ? `, ${result.y_param} ${format.number(fold.y, 2)}` : ''}`;
+      body.append(element('tr', {},
+        element('td', { class: 'left' }, `${fold.oos_from} to ${fold.oos_to}`), element('td', { class: 'left text' }, chosen),
+        element('td', {}, format.ratio(fold.in_sample.sharpe)),
+        element('td', { class: format.sign(fold.out_of_sample.sharpe) }, format.ratio(fold.out_of_sample.sharpe)),
+        element('td', { class: format.sign(fold.out_of_sample.cagr) }, format.percent(fold.out_of_sample.cagr, 1)),
+        element('td', {}, format.percent(-fold.out_of_sample.max_drawdown, 1)), element('td', {}, format.integer(fold.out_of_sample.trades))));
+    }
+    $('#folds').replaceChildren(element('table', {}, element('thead', {}, head), body));
+    this.timing(`${result.folds.length} windows`, ms);
+    document.body.dataset.walk = String(Number(document.body.dataset.walk ?? 0) + 1);
+  }
+
+  // The chart, in the theme's colors: a new result starts it on its whole range, and a change of theme keeps the view.
+  renderChart(keepView = true) {
+    const result = this.result;
+    if (!result) {
+      this.chart.draw();
+      return;
+    }
     const times = result.series.time;
     const regions = result.folds.map((fold, i) => ({
       from: fold.oos_index,
@@ -522,22 +547,11 @@ export class WalkForwardView extends ResearchView {
           ],
         },
       ],
-    });
-    const head = element('tr', {}, ['Traded', 'Chosen on the years before', 'Sharpe in', 'Sharpe out', 'Annual, out', 'Drawdown, out', 'Trades']
-      .map((name, i) => element('th', { scope: 'col', class: i < 2 ? 'left' : '' }, name)));
-    const body = element('tbody');
-    for (const fold of result.folds) {
-      const chosen = `${result.x_param} ${format.number(fold.x, 2)}${result.y_param ? `, ${result.y_param} ${format.number(fold.y, 2)}` : ''}`;
-      body.append(element('tr', {},
-        element('td', { class: 'left' }, `${fold.oos_from} to ${fold.oos_to}`), element('td', { class: 'left text' }, chosen),
-        element('td', {}, format.ratio(fold.in_sample.sharpe)),
-        element('td', { class: format.sign(fold.out_of_sample.sharpe) }, format.ratio(fold.out_of_sample.sharpe)),
-        element('td', { class: format.sign(fold.out_of_sample.cagr) }, format.percent(fold.out_of_sample.cagr, 1)),
-        element('td', {}, format.percent(-fold.out_of_sample.max_drawdown, 1)), element('td', {}, format.integer(fold.out_of_sample.trades))));
-    }
-    $('#folds').replaceChildren(element('table', {}, element('thead', {}, head), body));
-    this.timing(`${result.folds.length} windows`, ms);
-    document.body.dataset.walk = String(Number(document.body.dataset.walk ?? 0) + 1);
+    }, { keepView });
+  }
+
+  redraw() {
+    this.renderChart();
   }
 
   tooltip(index) {
@@ -625,6 +639,19 @@ export class MonteCarloView extends ResearchView {
       figure('The backtest', format.percent(result.metrics.cagr, 1), `a year, ${ordinal(Math.round(this.rank(d.cagr, result.metrics.cagr) * 100))} percentile`, { valueClass: sign(result.metrics.cagr) }),
       figure('Mean block', `${format.integer(result.block)} bars`, `seed ${result.seed}`),
     );
+    this.renderFan(false);
+    this.redraw();
+    this.timing(`${format.integer(result.paths)} paths`, ms);
+    document.body.dataset.monte = String(Number(document.body.dataset.monte ?? 0) + 1);
+  }
+
+  // The bands of the paths, in the theme's colors: a new result starts on the whole range, a change of theme keeps it.
+  renderFan(keepView = true) {
+    const result = this.result;
+    if (!result) {
+      this.chart.draw();
+      return;
+    }
     const b = result.bands;
     this.chart.setData({
       times: result.time,
@@ -638,10 +665,7 @@ export class MonteCarloView extends ResearchView {
         ],
         endLabels: true,
       }],
-    });
-    this.redraw();
-    this.timing(`${format.integer(result.paths)} paths`, ms);
-    document.body.dataset.monte = String(Number(document.body.dataset.monte ?? 0) + 1);
+    }, { keepView });
   }
 
   rank(sorted, value) {

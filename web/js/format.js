@@ -3,13 +3,26 @@
 const nothing = '–';
 const finite = (value) => typeof value === 'number' && Number.isFinite(value);
 
+// Intl.NumberFormat is slow to build and quick to use, and toLocaleString builds one on every call: one per pattern,
+// kept, formats the same text in a fraction of the time.
+const formatters = new Map();
+function grouped(value, minimum, maximum = minimum) {
+  const key = `${minimum}:${maximum}`;
+  let formatter = formatters.get(key);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat('en-US', { minimumFractionDigits: minimum, maximumFractionDigits: maximum });
+    formatters.set(key, formatter);
+  }
+  return formatter.format(value);
+}
+
 // Zero, for a value that would print as zero with a minus sign: -0, or -0.00004 at two decimals.
 const settle = (value, decimals) => (Math.abs(value) < 0.5 * 10 ** -decimals ? 0 : value);
 
 export function percent(value, digits = 1, signed = false) {
   if (!finite(value)) return nothing;
   value = settle(value * 100, digits) / 100;
-  const text = `${(value * 100).toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits })}%`;
+  const text = `${grouped(value * 100, digits)}%`;
   return signed && value > 0 ? `+${text}` : text.replace('-', '−');
 }
 
@@ -20,12 +33,12 @@ export function ratio(value, digits = 2) {
 
 export function integer(value) {
   if (!finite(value)) return nothing;
-  return Math.round(value).toLocaleString('en-US');
+  return grouped(Math.round(value), 0);
 }
 
 export function money(value, digits = 0) {
   if (!finite(value)) return nothing;
-  const text = Math.abs(value).toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  const text = grouped(Math.abs(value), digits);
   return `${value < 0 ? '−' : ''}$${text}`;
 }
 
@@ -79,12 +92,12 @@ function trim(value) {
 export function price(value) {
   if (!finite(value)) return nothing;
   const digits = Math.abs(value) >= 1000 ? 0 : Math.abs(value) >= 10 ? 2 : Math.abs(value) >= 1 ? 3 : 4;
-  return value.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  return grouped(value, digits);
 }
 
 export function number(value, digits = 2) {
   if (!finite(value)) return nothing;
-  return Number(settle(value, digits).toFixed(digits)).toLocaleString('en-US', { maximumFractionDigits: digits }).replace('-', '−');
+  return grouped(Number(settle(value, digits).toFixed(digits)), 0, digits).replace('-', '−');
 }
 
 // Timestamps arrive as seconds since 1970 (UTC).

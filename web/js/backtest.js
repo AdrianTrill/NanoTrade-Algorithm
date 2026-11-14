@@ -1,7 +1,7 @@
 // The backtest view: the result told in a headline and a paragraph, the headline figures against buy and hold, the
 // chart, and the tables.
 import { TimeChart } from './chart.js';
-import { $, $$, element, escapeHtml } from './dom.js';
+import { $, $$, element, escapeHtml, yieldToBrowser } from './dom.js';
 import { bars, figure, versus } from './figures.js';
 import * as format from './format.js';
 import { overlayColor, palette } from './palette.js';
@@ -35,6 +35,8 @@ export class BacktestView {
     this.hidden = new Set();
     this.trades = [];
     this.log = true;
+    this.detail = 'trades';
+    this.built = new Set();  // the tables built for this result
     $('#candles').addEventListener('click', () => this.toggleCandles());
     $('#log').addEventListener('click', () => this.toggleLog());
     $('#zoom-reset').addEventListener('click', () => this.chart.reset());
@@ -47,9 +49,42 @@ export class BacktestView {
   }
 
   showDetail(name) {
+    this.detail = name;
     for (const tab of $$('.details .tab')) tab.setAttribute('aria-selected', String(tab.dataset.detail === name));
     for (const panel of $$('.details [data-detail-panel]')) panel.hidden = panel.dataset.detailPanel !== name;
     $('#export').hidden = name !== 'trades';
+    this.renderDetail();
+  }
+
+  // Builds the open table, if this result hasn't yet: the others wait until they're opened.
+  renderDetail() {
+    const result = this.result;
+    if (!result || this.built.has(this.detail)) return;
+    this.built.add(this.detail);
+    if (this.detail === 'trades') {
+      tradesTable($('#trades'), result.trades, {
+        onHover: (i) => this.chart.setHighlight(i === null ? null : this.trades[i]),
+        onSelect: (i) => {
+          const trade = this.trades[i];
+          this.chart.setHighlight(trade);
+          this.chart.zoomTo(trade.entry, trade.exit, 0.8);
+          $('#chart').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        },
+      });
+    } else if (this.detail === 'monthly') {
+      monthlyTable($('#monthly'), result.calendar);
+    } else if (this.detail === 'metrics') {
+      metricsTable($('#metrics'), result.metrics, result.benchmark);
+    } else if (this.detail === 'drawdowns') {
+      drawdownsTable($('#drawdowns'), result.drawdowns, (d) => {
+        const times = result.series.time;
+        const index = (day) => times.findIndex((t) => format.date(t) >= day);
+        const from = index(d.peak);
+        const to = d.recovery ? index(d.recovery) : times.length - 1;
+        this.chart.zoomTo(Math.max(0, from), Math.max(from, to), 0.25);
+        $('#chart').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      });
+    }
   }
 
   toggleCandles() {
@@ -75,7 +110,8 @@ export class BacktestView {
     $('#chart').parentElement.classList.toggle('stale', flag);
   }
 
-  render(result, bars, meta) {
+  // Draws a result: what's in view first, then, after the browser has had a chance to paint it, the open table.
+  async render(result, bars, meta) {
     const sameData = this.result && this.bars === bars;
     this.result = result;
     this.bars = bars;
@@ -93,26 +129,10 @@ export class BacktestView {
     this.renderFigures();
     this.renderLegend();
     this.renderChart(sameData);
-    tradesTable($('#trades'), result.trades, {
-      onHover: (i) => this.chart.setHighlight(i === null ? null : this.trades[i]),
-      onSelect: (i) => {
-        const trade = this.trades[i];
-        this.chart.setHighlight(trade);
-        this.chart.zoomTo(trade.entry, trade.exit, 0.8);
-        $('#chart').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-      },
-    });
     $('#trade-count').textContent = format.integer(result.trades.length);
-    monthlyTable($('#monthly'), result.calendar);
-    metricsTable($('#metrics'), result.metrics, result.benchmark);
-    drawdownsTable($('#drawdowns'), result.drawdowns, (d) => {
-      const times = result.series.time;
-      const index = (day) => times.findIndex((t) => format.date(t) >= day);
-      const from = index(d.peak);
-      const to = d.recovery ? index(d.recovery) : times.length - 1;
-      this.chart.zoomTo(Math.max(0, from), Math.max(from, to), 0.25);
-      $('#chart').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    });
+    this.built = new Set();
+    await yieldToBrowser();
+    this.renderDetail();
   }
 
   // The headline, a paragraph that says what happened, and a dateline with the particulars.

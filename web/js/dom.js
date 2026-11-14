@@ -29,6 +29,17 @@ export function element(tag, attributes = {}, ...children) {
   return node;
 }
 
+// Lets the browser paint, and handle input, before the work that follows: a task of its own, without the clamping that
+// setTimeout gets.
+export function yieldToBrowser() {
+  if (globalThis.scheduler?.yield) return globalThis.scheduler.yield();
+  return new Promise((resolve) => {
+    const channel = new MessageChannel();
+    channel.port1.onmessage = () => resolve();
+    channel.port2.postMessage(null);
+  });
+}
+
 export function icon(name) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('class', 'icon');

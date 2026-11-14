@@ -20,10 +20,11 @@ export function trackMasthead() {
     root.style.setProperty('--masthead-height', `${masthead.offsetHeight - lift}px`);
     stick();
   };
+  // The observer reports the masthead's size once it's laid out, and again whenever it changes: reading it any sooner
+  // would make the browser lay out the page early, and again later.
   new ResizeObserver(update).observe(masthead);
   narrow.addEventListener('change', update);
   addEventListener('scroll', stick, { passive: true });
-  update();
 }
 
 export class Drawer {

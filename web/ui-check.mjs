@@ -1,7 +1,7 @@
 // The lab in headless Chrome: it must start without errors, run a backtest, react to its settings, report a rule's
-// error where it is, run a sweep, a walk-forward test, and Monte Carlo resampling, open a CSV, switch themes, answer
-// its keys and its command menu, restore a backtest from a link, and fit a phone's screen, with the settings in a
-// sheet over the result.
+// error where it is, run a sweep, a walk-forward test, Monte Carlo resampling, and a portfolio, open a CSV, switch
+// themes, answer its keys and its command menu, restore a backtest from a link, and fit a phone's screen, with the
+// settings in a sheet over the result. axe-core audits each of those states for accessibility on the way.
 //
 //   node web/ui-check.mjs SITE_DIR [--native PATH_TO_NANOTRADE] [--screenshots DIR]
 //
@@ -9,6 +9,7 @@
 // --native, `nanotrade serve` serves it, and the page runs against the C++ build instead.
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import puppeteer from 'puppeteer-core';
@@ -116,6 +117,21 @@ async function open_view(page, view, counter) {
   await page.click(`.view[data-view="${view}"]`);
   await nextRun(page, counter, before);
 }
+// Audits what the page shows against WCAG 2.2 AA and axe-core's best practices, once its transitions have settled.
+const axeSource = createRequire(import.meta.url)('axe-core').source;
+async function accessible(page, state) {
+  await page.evaluate(() => Promise.all(document.getAnimations()
+    .filter((animation) => animation.effect?.getComputedTiming().endTime !== Infinity)
+    .map((animation) => animation.finished.catch(() => {}))));
+  if (!(await page.evaluate(() => 'axe' in window))) await page.addScriptTag({ content: axeSource });
+  const violations = await page.evaluate(async () => {
+    const { violations } = await window.axe.run(document, {
+      runOnly: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice'],
+    });
+    return violations.map((violation) => `${violation.id} (${violation.help}): ${violation.nodes.slice(0, 3).map((node) => node.target.join(' ')).join(', ')}`);
+  });
+  check(violations.length === 0, `axe-core finds no accessibility problems ${state}${violations.length ? `:\n  ${violations.join('\n  ')}` : ''}`);
+}
 
 try {
   // While the engine starts, placeholders stand in for the figures and the chart; a failed start says so.
@@ -160,6 +176,7 @@ try {
   });
   check(inked > 200, 'the chart is drawn');
   await shoot(page, 'backtest');
+  await accessible(page, 'on the backtest');
 
   // Settings rerun the backtest.
   let before = await backtests(page);
@@ -178,6 +195,7 @@ try {
   'a pinned backtest is compared with the next: each figure\'s change, and its equity on the chart');
   await page.click('.tab[data-detail="metrics"]');
   check((await text(page, '#metrics thead')).includes('Pinned'), 'and every metric beside its own');
+  await accessible(page, 'with a backtest pinned');
   await page.click('.tab[data-detail="trades"]');
   await page.evaluate(() => document.activeElement?.blur());
   await page.keyboard.press('p');
@@ -190,6 +208,7 @@ try {
     await page.click(`.tab[data-detail="${tab}"]`);
     const visible = await page.$eval(`[data-detail-panel="${tab}"]`, (panel) => !panel.hidden && panel.querySelectorAll('tr').length > 1);
     check(visible, `the ${tab} table shows`);
+    await accessible(page, `in the ${tab} table`);
   }
 
   // A custom rule, with a mistake in it.
@@ -200,6 +219,7 @@ try {
   await page.waitForFunction(() => !document.querySelector('#rule-error')?.hidden, { timeout: 30000 });
   check((await text(page, '#rule-error')).includes("unknown name 'oversold'"), 'a mistake in a rule is reported');
   check((await count(page, '.editor.invalid .tok-error')) === 1, 'and underlined where it is');
+  await accessible(page, 'in the rule editor, with its error');
   before = await backtests(page);
   await typeRule(page, 0, 'rsi(close, 14) < 30 and close > sma(close, 200)');
   await typeRule(page, 1, 'rsi(close, 14) > 55');
@@ -217,6 +237,7 @@ try {
   check((await count(page, '#overfit .measure')) === 2, 'a sweep reports the deflated Sharpe ratio and the probability of overfitting');
   check((await count(page, '#top tbody tr')) === 10, 'and its ten best combinations');
   await shoot(page, 'optimize');
+  await accessible(page, 'in the sweep');
   let sweeps = await runs(page, 'sweep');
   await slide(page, 'Commission', 5);
   await page.waitForFunction(() => document.querySelector('[data-panel="optimize"]').classList.contains('stale'), { timeout: 30000 });
@@ -238,9 +259,11 @@ try {
   check((await count(page, '#folds tbody tr')) > 5, 'a walk-forward test lists its windows');
   check((await count(page, '#walk-kpis .figure')) === 6, 'and its figures');
   await shoot(page, 'walkforward');
+  await accessible(page, 'in the walk-forward test');
   await open_view(page, 'montecarlo', 'monte');
   check((await count(page, '#histograms canvas')) === 3, 'Monte Carlo resampling draws its three distributions');
   await shoot(page, 'montecarlo');
+  await accessible(page, 'in Monte Carlo resampling');
 
   // A portfolio of the strategy on several markets.
   await open_view(page, 'portfolio', 'portfolio');
@@ -257,6 +280,7 @@ try {
   check((await count(page, '#port-weights input')) === 4 && (await page.evaluate(() => location.search)).includes('pw=fixed'),
     'fixed weights take a weight for each market, and the link keeps them');
   await shoot(page, 'portfolio');
+  await accessible(page, 'in the portfolio');
   before = await backtests(page);
   await page.click('#port-markets tbody tr:last-child');
   await nextBacktest(page, before);
@@ -276,6 +300,7 @@ try {
   await sleep(400);
   check((await page.evaluate(() => document.documentElement.dataset.theme)) === 'dark', 'T switches to the dark theme');
   await shoot(page, 'dark');
+  await accessible(page, 'in the dark theme');
   await page.keyboard.press('t');
   await sleep(400);
   await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'dark' }]);
@@ -291,10 +316,12 @@ try {
   await page.emulateMediaFeatures();
   await page.keyboard.press('?');
   check(await page.$eval('#shortcuts', (dialog) => dialog.open), '? lists the shortcuts');
+  await accessible(page, 'in the list of shortcuts');
   await page.keyboard.press('Escape');
   await page.keyboard.press('f');
   check(await page.$eval('#reference', (dialog) => dialog.open) && (await count(page, '#reference tbody tr')) >= 20,
     'F opens the rule language reference');
+  await accessible(page, 'in the reference');
   await page.keyboard.press('Escape');
 
   // The command menu, from its keys and from the breadcrumbs.
@@ -305,9 +332,13 @@ try {
   await page.keyboard.up('Control');
   check(await page.$eval('#command', (dialog) => dialog.open) && (await count(page, '#command [role="option"]')) > 20,
     'Ctrl K opens the command menu, with every command');
+  await accessible(page, 'in the command menu');
   await page.keyboard.type('walk');
   check(await page.evaluate(() => document.querySelector('#command [aria-selected="true"]')?.textContent.startsWith('Walk-forward')),
     'typing finds a command');
+  await page.keyboard.type('zzz');
+  check((await count(page, '#command [role="option"]')) === 0, 'and nothing, when nothing matches');
+  await accessible(page, 'in the command menu, with nothing found');
   await page.keyboard.press('Escape');
   await page.evaluate(() => window.scrollTo(0, 0));  // the crumbs' row scrolls away with the page on a wide screen
   await page.click('#crumb-data');
@@ -332,6 +363,7 @@ try {
       same: response.ok && response.result.metrics.sharpe === window.nanotrade.backtest.result.metrics.sharpe };
   });
   check(asked.open && asked.command === 'backtest' && asked.same, 'A shows the run as an API request, which gives the backtest on the page');
+  await accessible(page, 'in the API request');
   await page.click('#api [data-format="cli"]');
   check((await text(page, '#api-code')).startsWith("nanotrade api <<'EOF'"), 'and as a command line');
   await page.keyboard.press('Escape');
@@ -372,6 +404,7 @@ try {
   check(phoneShift < 0.02, `and nothing moves as it arrives (layout shift ${phoneShift.toFixed(3)})`);
   check(await page.$eval('#spec', (node) => getComputedStyle(node).visibility === 'hidden'), 'the settings wait until they\'re asked for');
   await shoot(page, 'phone');
+  await accessible(page, 'on a phone');
   await page.tap('#spec-toggle');
   await sleep(400);
   check(await page.evaluate(() => document.querySelector('#spec-toggle').getAttribute('aria-expanded') === 'true'
@@ -379,6 +412,7 @@ try {
     && document.querySelector('#spec').contains(document.activeElement)), 'Settings opens them, with the focus inside');
   check(await page.$eval('#kpis', (node) => node.getBoundingClientRect().top < innerHeight / 3), 'with the headline figures in view above them');
   await shoot(page, 'phone-settings');
+  await accessible(page, 'on a phone, with the settings open');
   before = await backtests(page);
   await page.tap('#direction [data-value="both"]');
   await nextBacktest(page, before);

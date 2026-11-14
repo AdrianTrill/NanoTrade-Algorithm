@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>NanoTrade · a backtesting lab in your browser</title>
+  <meta name="description" content="Backtest trading strategies on half a century of daily bars, entirely in your browser: a C++20 engine compiled to WebAssembly, a rule language, parameter sweeps that measure their own overfitting, walk-forward tests, and Monte Carlo resampling.">
+  <meta name="theme-color" content="#f4efe5">
+  <meta property="og:title" content="NanoTrade · a backtesting lab in your browser">
+  <meta property="og:description" content="A C++20 backtester compiled to WebAssembly: strategies in a small rule language, tested on half a century of daily bars, with the overfitting measured.">
+  <meta property="og:image" content="https://adriantrill.github.io/NanoTrade-Algorithm/social.png">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <script>
+    // The remembered edition, applied before the first paint.
+    try {
+      const theme = localStorage.getItem('nanotrade-theme');
+      if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+    } catch {}
+  </script>
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <svg class="sprite" aria-hidden="true">
+    <symbol id="i-mark" viewBox="0 0 32 32">
+      <rect width="32" height="32" fill="currentColor"/>
+      <path d="M9.5 23.5V8.5l13 15v-15" fill="none" stroke="#fff" stroke-width="3.2" stroke-linejoin="miter"/>
+    </symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/></g></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/></g></symbol>
+    <symbol id="i-code" viewBox="0 0 24 24"><path d="m8 7-5 5 5 5M16 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-keyboard" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2.5" y="6" width="19" height="12" rx="1.5"/><path d="M6.5 10h.01M10 10h.01M14 10h.01M17.5 10h.01M8 14h8"/></g></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v4h16v-4"/></g></symbol>
+    <symbol id="i-dice" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3.5" y="3.5" width="17" height="17" rx="1.5"/></g><g fill="currentColor"><circle cx="8.5" cy="8.5" r="1.4"/><circle cx="15.5" cy="15.5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="15.5" cy="8.5" r="1.4"/><circle cx="8.5" cy="15.5" r="1.4"/></g></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5Z" fill="currentColor"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6.5" y="6.5" width="11" height="11" fill="currentColor"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5"/><path d="M4 17v3h16v-3"/></g></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-function" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4.5c-2.5-.8-4 .3-4.5 3L8.5 18c-.5 2.7-2 3.6-4.5 2.8"/><path d="M7 10h7"/><path d="m14.5 13 5 5M19.5 13l-5 5"/></g></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16Z"/><path d="m13.5 6.5 4 4"/></g></symbol>
+  </svg>
+
+  <div class="page">
+    <header class="masthead">
+      <div class="masthead-inner">
+        <div class="masthead-row">
+          <a class="brand" href="./" aria-label="NanoTrade, home">
+            <svg class="mark" width="26" height="26"><use href="#i-mark"/></svg>
+            <span class="wordmark">NanoTrade</span>
+            <span class="edition">a backtesting lab</span>
+          </a>
+          <p class="runtime" id="runtime" title="Where the engine runs"><span class="dot"></span><span id="runtime-label">Loading the engine</span><span class="runtime-detail" id="runtime-detail"></span></p>
+          <nav class="tools" aria-label="Page tools">
+            <button class="text-button" id="share" title="Copy a link to this backtest (S)"><svg class="icon"><use href="#i-link"/></svg><span>Link</span></button>
+            <button class="text-button" id="theme" title="Night edition (T)"><svg class="icon"><use href="#i-moon"/></svg><span>Night</span></button>
+            <button class="text-button" id="help" title="Keyboard shortcuts (?)"><svg class="icon"><use href="#i-keyboard"/></svg><span>Keys</span></button>
+            <a class="text-button" href="https://github.com/AdrianTrill/NanoTrade-Algorithm" target="_blank" rel="noopener"><svg class="icon"><use href="#i-code"/></svg><span>Source</span></a>
+          </nav>
+        </div>
+        <nav class="sections" role="tablist" aria-label="Views">
+          <button class="view" role="tab" data-view="backtest" aria-selected="true" title="Backtest (1)"><span class="num">01</span>Backtest</button>
+          <button class="view" role="tab" data-view="optimize" aria-selected="false" title="Optimize (2)"><span class="num">02</span>Optimize</button>
+          <button class="view" role="tab" data-view="walkforward" aria-selected="false" title="Walk-forward (3)"><span class="num">03</span>Walk-forward</button>
+          <button class="view" role="tab" data-view="montecarlo" aria-selected="false" title="Monte Carlo (4)"><span class="num">04</span>Monte Carlo</button>
+        </nav>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="spec" id="spec" aria-label="The backtest's specification">
+        <section class="spec-section">
+          <header class="spec-head"><h2><span class="num">1</span>Data</h2></header>
+          <div class="field">
+            <label class="field-label" for="dataset">Market</label>
+            <div class="select-row">
+              <select id="dataset" class="serif-select"></select>
+              <button class="square-button" id="upload" title="Open a CSV of daily bars (O)" aria-label="Open a CSV file"><svg class="icon"><use href="#i-upload"/></svg></button>
+              <input type="file" id="file" accept=".csv,text/csv,.txt" hidden>
+            </div>
+            <p class="note" id="dataset-note"></p>
+          </div>
+          <div class="field" id="seed-field" hidden>
+            <label class="field-label" for="seed">Seed</label>
+            <div class="select-row">
+              <input type="number" id="seed" min="0" step="1" value="7">
+              <button class="square-button" id="reseed" title="Another random market (N)" aria-label="Another random market"><svg class="icon"><use href="#i-dice"/></svg></button>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="from">Dates</label>
+            <div class="range-row">
+              <input type="date" id="from" aria-label="From">
+              <span class="range-dash">to</span>
+              <input type="date" id="to" aria-label="To">
+            </div>
+            <div class="chips" id="presets"></div>
+          </div>
+        </section>
+
+        <section class="spec-section">
+          <header class="spec-head"><h2><span class="num">2</span>Strategy</h2><button class="text-button small" id="reference-open" title="The rule language (F)"><svg class="icon"><use href="#i-function"/></svg><span>Functions</span></button></header>
+          <div class="field">
+            <select id="strategy" class="serif-select" aria-label="Strategy"></select>
+            <p class="note" id="strategy-summary"></p>
+          </div>
+          <div class="params" id="params"></div>
+          <div class="rules" id="rules"></div>
+          <button class="text-button small edit-rules" id="edit-rules" title="Edit these rules as a custom strategy (E)"><svg class="icon"><use href="#i-edit"/></svg><span>Edit these rules</span></button>
+        </section>
+
+        <section class="spec-section">
+          <header class="spec-head"><h2><span class="num">3</span>Position</h2></header>
+          <div class="segmented" id="direction" role="radiogroup" aria-label="Direction">
+            <button data-value="long" aria-pressed="true">Long only</button>
+            <button data-value="both" aria-pressed="false">Long and short</button>
+          </div>
+          <div class="segmented" id="sizing" role="radiogroup" aria-label="Sizing">
+            <button data-value="percent" aria-pressed="true">Share of equity</button>
+            <button data-value="volatility" aria-pressed="false">Volatility target</button>
+          </div>
+          <div class="params" id="position-params"></div>
+        </section>
+
+        <section class="spec-section">
+          <header class="spec-head"><h2><span class="num">4</span>Exits and costs</h2></header>
+          <div class="params" id="risk-params"></div>
+        </section>
+      </aside>
+
+      <main class="report" id="main">
+        <section class="view-panel" data-panel="backtest">
+          <header class="lede">
+            <p class="kicker" id="kicker">Backtest</p>
+            <h1 id="headline">Loading the engine</h1>
+            <p class="deck" id="deck"></p>
+            <p class="dateline" id="dateline"></p>
+          </header>
+          <div class="figures" id="kpis"></div>
+          <figure class="exhibit">
+            <figcaption class="exhibit-head">
+              <div class="exhibit-text">
+                <span class="exhibit-label">Figure 1</span>
+                <h2 class="exhibit-title">Price and signals, position, equity, and drawdown</h2>
+                <div class="legend" id="legend"></div>
+              </div>
+              <div class="chart-tools">
+                <button class="toggle-text" id="log" aria-pressed="true" title="Logarithmic price and equity (L)">Log scale</button>
+                <button class="toggle-text" id="candles" aria-pressed="false" title="Candles when zoomed in (C)">Candles</button>
+                <button class="toggle-text" id="zoom-reset" title="Show the whole range (R)">Reset view</button>
+              </div>
+            </figcaption>
+            <div class="chart-wrap main-chart">
+              <canvas id="chart" aria-label="Price with indicators and trades, the position held, the strategy's equity against buy and hold, and drawdowns"></canvas>
+              <div class="tooltip" id="tooltip" hidden></div>
+            </div>
+            <p class="source">Scroll or pinch to zoom, drag to pan, double-click for the whole range. Orders are decided at a bar's close and filled at the next bar's open. <span id="chart-source"></span></p>
+          </figure>
+          <section class="exhibit details" aria-label="Tables">
+            <div class="tabs" role="tablist">
+              <button class="tab" role="tab" data-detail="trades" aria-selected="true">Trades<span class="count" id="trade-count"></span></button>
+              <button class="tab" role="tab" data-detail="monthly" aria-selected="false">Monthly returns</button>
+              <button class="tab" role="tab" data-detail="metrics" aria-selected="false">Every metric</button>
+              <button class="tab" role="tab" data-detail="drawdowns" aria-selected="false">Drawdowns</button>
+              <button class="text-button small push" id="export" title="Download the trades as CSV"><svg class="icon"><use href="#i-download"/></svg><span>CSV</span></button>
+            </div>
+            <div class="detail" data-detail-panel="trades"><div class="table-scroll" id="trades"></div></div>
+            <div class="detail" data-detail-panel="monthly" hidden><div class="table-scroll" id="monthly"></div></div>
+            <div class="detail" data-detail-panel="metrics" hidden><div class="table-scroll" id="metrics"></div></div>
+            <div class="detail" data-detail-panel="drawdowns" hidden><div class="table-scroll" id="drawdowns"></div></div>
+          </section>
+        </section>
+
+        <section class="view-panel" data-panel="optimize" hidden>
+          <header class="lede">
+            <p class="kicker">Optimize</p>
+            <h1>Which parameters work, and is the best one luck?</h1>
+            <p class="deck">Every combination of one or two parameters is backtested on the same bars. The map shows where the strategy works; the box beside it measures how much of the winner's edge a search this wide would find by chance alone.</p>
+          </header>
+          <div class="run-strip">
+            <div class="run-fields" id="sweep-fields"></div>
+            <div class="run-actions">
+              <span class="estimate" id="sweep-estimate"></span>
+              <button class="button primary" id="sweep-run"><svg class="icon"><use href="#i-play"/></svg><span>Run the sweep</span></button>
+            </div>
+            <div class="progress" id="sweep-progress" hidden><div></div></div>
+          </div>
+          <div class="optimize-grid">
+            <figure class="exhibit">
+              <figcaption class="exhibit-head">
+                <div class="exhibit-text">
+                  <span class="exhibit-label">Figure 2</span>
+                  <h2 class="exhibit-title" id="heatmap-title">The parameter map</h2>
+                  <p class="exhibit-sub">Hover a cell for its numbers and click it to backtest them. The outlined cell scored best; the dot marks the parameters in the backtest.</p>
+                </div>
+              </figcaption>
+              <div class="chart-wrap heatmap-wrap"><canvas id="heatmap"></canvas><div class="tooltip" id="heatmap-tip" hidden></div><div class="empty" id="heatmap-empty">Run a sweep to map the strategy's score across its parameters.</div></div>
+            </figure>
+            <aside class="factbox" aria-labelledby="overfit-title">
+              <h2 id="overfit-title">Is the winner real?</h2>
+              <div id="overfit" class="overfit-body"><p class="empty-text">A sweep picks its best combination with hindsight. The deflated Sharpe ratio and the probability of backtest overfitting measure how much of that edge luck can explain.</p></div>
+            </aside>
+            <section class="exhibit">
+              <div class="exhibit-head"><div class="exhibit-text"><span class="exhibit-label">Table 2</span><h2 class="exhibit-title">The best combinations</h2><p class="exhibit-sub">Click a row to backtest it.</p></div></div>
+              <div class="table-scroll" id="top"><p class="table-note">Nothing yet.</p></div>
+            </section>
+            <figure class="exhibit">
+              <figcaption class="exhibit-head"><div class="exhibit-text"><span class="exhibit-label">Figure 3</span><h2 class="exhibit-title">Winners in and out of sample</h2><p class="exhibit-sub">Split the bars into blocks, pick the best combination on half of them, and score it on the other half: each dot is one split's winner.</p></div></figcaption>
+              <div class="chart-wrap small-chart"><canvas id="degradation"></canvas></div>
+            </figure>
+          </div>
+        </section>
+
+        <section class="view-panel" data-panel="walkforward" hidden>
+          <header class="lede">
+            <p class="kicker">Walk-forward</p>
+            <h1>Choose with the past, trade the future</h1>
+            <p class="deck">The parameters that scored best on a window of years trade the window after it, and then everything rolls forward. The equity below only ever used parameters chosen before the bars it traded.</p>
+          </header>
+          <div class="run-strip">
+            <div class="run-fields" id="walk-fields"></div>
+            <div class="run-actions">
+              <span class="estimate" id="walk-estimate"></span>
+              <button class="button primary" id="walk-run"><svg class="icon"><use href="#i-play"/></svg><span>Walk forward</span></button>
+            </div>
+            <div class="progress" id="walk-progress" hidden><div></div></div>
+          </div>
+          <div class="figures" id="walk-kpis"></div>
+          <figure class="exhibit">
+            <figcaption class="exhibit-head"><div class="exhibit-text"><span class="exhibit-label">Figure 4</span><h2 class="exhibit-title">Out-of-sample equity, chained across the windows</h2><p class="exhibit-sub">Shaded bands alternate between windows; the grey line is buy and hold over the same bars.</p></div></figcaption>
+            <div class="chart-wrap"><canvas id="walk-chart"></canvas><div class="tooltip" id="walk-tip" hidden></div><div class="empty" id="walk-empty">Optimize on a window of years, trade the next one with the winner, and roll forward.</div></div>
+          </figure>
+          <section class="exhibit">
+            <div class="exhibit-head"><div class="exhibit-text"><span class="exhibit-label">Table 3</span><h2 class="exhibit-title">The windows</h2></div></div>
+            <div class="table-scroll" id="folds"><p class="table-note">Nothing yet.</p></div>
+          </section>
+        </section>
+
+        <section class="view-panel" data-panel="montecarlo" hidden>
+          <header class="lede">
+            <p class="kicker">Monte Carlo</p>
+            <h1>What luck could have done</h1>
+            <p class="deck">Blocks of the backtest's own daily returns are drawn at random, a thousand times over, keeping calm and turbulent stretches together. The spread of the paths is the range of outcomes the same edge allows.</p>
+          </header>
+          <div class="run-strip">
+            <div class="run-fields" id="monte-fields"></div>
+            <div class="run-actions">
+              <span class="estimate" id="monte-estimate"></span>
+              <button class="button primary" id="monte-run"><svg class="icon"><use href="#i-play"/></svg><span>Resample</span></button>
+            </div>
+            <div class="progress" id="monte-progress" hidden><div></div></div>
+          </div>
+          <div class="figures" id="monte-kpis"></div>
+          <figure class="exhibit">
+            <figcaption class="exhibit-head"><div class="exhibit-text"><span class="exhibit-label">Figure 5</span><h2 class="exhibit-title">Resampled equity</h2><p class="exhibit-sub">The 5th to 95th and 25th to 75th percentiles of the paths, their median (dashed), and the backtest itself.</p></div></figcaption>
+            <div class="chart-wrap"><canvas id="fan"></canvas><div class="tooltip" id="fan-tip" hidden></div><div class="empty" id="fan-empty">Resample the backtest's daily returns to see the outcomes its edge and luck allow.</div></div>
+          </figure>
+          <div class="histograms" id="histograms"></div>
+        </section>
+      </main>
+    </div>
+
+    <footer class="colophon">
+      <span class="status-engine" id="status-engine"><span class="dot"></span><span>Starting</span></span>
+      <span>Data: Quandl WIKI prices, in the public domain, via MarketData.jl</span>
+      <span>Research software, not investment advice</span>
+      <button class="text-button small push" id="status-help" title="Keyboard shortcuts"><kbd>?</kbd><span>Shortcuts</span></button>
+    </footer>
+  </div>
+
+  <dialog id="shortcuts" class="dialog" aria-label="Keyboard shortcuts">
+    <header><h2>Keyboard shortcuts</h2><button class="square-button" data-close aria-label="Close"><svg class="icon"><use href="#i-x"/></svg></button></header>
+    <dl id="shortcut-list"></dl>
+  </dialog>
+
+  <dialog id="reference" class="dialog wide" aria-label="The rule language">
+    <header><h2>The rule language</h2><button class="square-button" data-close aria-label="Close"><svg class="icon"><use href="#i-x"/></svg></button></header>
+    <div id="reference-body"></div>
+  </dialog>
+
+  <div class="drop-overlay" id="drop" hidden><div><svg class="icon"><use href="#i-upload"/></svg><p>Drop a CSV of daily bars</p><span>Date, open, high, low, close, and volume: exports from Yahoo, Stooq, Nasdaq.com, and Quandl all read.</span></div></div>
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+</body>
+</html>

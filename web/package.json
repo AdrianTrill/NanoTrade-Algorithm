@@ -1,0 +1,12 @@
+{
+  "name": "nanotrade-lab-checks",
+  "private": true,
+  "description": "Checks for the lab: the WebAssembly build against the native one, and the page in headless Chrome.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "devDependencies": {
+    "puppeteer-core": "25.17.0"
+  }
+}

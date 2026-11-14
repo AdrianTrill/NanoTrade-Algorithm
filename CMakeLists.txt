@@ -38,6 +38,13 @@ if(NANOTRADE_SANITIZERS)
     target_link_options(nanotrade_options INTERFACE -fsanitize=${NANOTRADE_SANITIZERS})
 endif()
 
+# Bad input is reported by throwing, and Emscripten only catches C++ exceptions when asked: the browser's native
+# exception handling, in every object linked.
+if(EMSCRIPTEN)
+    add_compile_options(-fwasm-exceptions)
+    add_link_options(-fwasm-exceptions)
+endif()
+
 find_package(Threads REQUIRED)
 
 add_library(nanotrade_core
@@ -58,25 +65,56 @@ add_library(nanotrade_core
 target_include_directories(nanotrade_core PUBLIC ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(nanotrade_core PUBLIC Threads::Threads PRIVATE nanotrade_options)
 
-add_library(nanotrade_http src/http.cpp)
-target_include_directories(nanotrade_http PUBLIC ${PROJECT_SOURCE_DIR}/include)
-target_link_libraries(nanotrade_http PUBLIC Threads::Threads PRIVATE nanotrade_options)
-if(WIN32)
-    target_link_libraries(nanotrade_http PUBLIC ws2_32)
-endif()
-
-# Where `nanotrade serve` looks for the lab's files.
+# The lab: the page, its scripts, and the bundled data, assembled in site/. The WebAssembly build adds the engine;
+# without it, `nanotrade serve` runs the page against the native engine.
 set(NANOTRADE_SITE_DIR ${PROJECT_BINARY_DIR}/site)
+file(GLOB NANOTRADE_WEB_FILES CONFIGURE_DEPENDS
+    ${PROJECT_SOURCE_DIR}/web/*.html ${PROJECT_SOURCE_DIR}/web/*.css ${PROJECT_SOURCE_DIR}/web/*.svg
+    ${PROJECT_SOURCE_DIR}/web/*.png)
+list(FILTER NANOTRADE_WEB_FILES EXCLUDE REGEX "social-card\\.html$")
+file(GLOB NANOTRADE_WEB_SCRIPTS CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/web/js/*.js)
+file(GLOB NANOTRADE_DATA_FILES CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/data/*.csv ${PROJECT_SOURCE_DIR}/data/manifest.json)
+add_custom_target(nanotrade_site ALL
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${NANOTRADE_SITE_DIR}/js ${NANOTRADE_SITE_DIR}/data
+    COMMAND ${CMAKE_COMMAND} -E copy ${NANOTRADE_WEB_FILES} ${NANOTRADE_SITE_DIR}
+    COMMAND ${CMAKE_COMMAND} -E copy ${NANOTRADE_WEB_SCRIPTS} ${NANOTRADE_SITE_DIR}/js
+    COMMAND ${CMAKE_COMMAND} -E copy ${NANOTRADE_DATA_FILES} ${NANOTRADE_SITE_DIR}/data
+    COMMENT "Assembling the site in ${NANOTRADE_SITE_DIR}")
 
-add_executable(nanotrade tools/nanotrade_main.cpp)
-target_link_libraries(nanotrade PRIVATE nanotrade_core nanotrade_http nanotrade_options)
-target_compile_definitions(nanotrade PRIVATE
-    NANOTRADE_DATA_DIR="${PROJECT_SOURCE_DIR}/data"
-    NANOTRADE_SITE_DIR="${NANOTRADE_SITE_DIR}")
+if(EMSCRIPTEN)
+    add_executable(nanotrade_wasm web/nanotrade_wasm.cpp)
+    target_link_libraries(nanotrade_wasm PRIVATE nanotrade_core nanotrade_options)
+    target_link_options(nanotrade_wasm PRIVATE
+        -lembind
+        -sMODULARIZE=1
+        -sEXPORT_ES6=1
+        -sEXPORT_NAME=createNanoTrade
+        -sALLOW_MEMORY_GROWTH=1
+        -sSTACK_SIZE=1MB
+        -sENVIRONMENT=web,worker,node)
+    set_target_properties(nanotrade_wasm PROPERTIES
+        OUTPUT_NAME nanotrade
+        SUFFIX ".mjs"
+        RUNTIME_OUTPUT_DIRECTORY ${NANOTRADE_SITE_DIR}/js)
+    add_dependencies(nanotrade_site nanotrade_wasm)
+else()
+    add_library(nanotrade_http src/http.cpp)
+    target_include_directories(nanotrade_http PUBLIC ${PROJECT_SOURCE_DIR}/include)
+    target_link_libraries(nanotrade_http PUBLIC Threads::Threads PRIVATE nanotrade_options)
+    if(WIN32)
+        target_link_libraries(nanotrade_http PUBLIC ws2_32)
+    endif()
+
+    add_executable(nanotrade tools/nanotrade_main.cpp)
+    target_link_libraries(nanotrade PRIVATE nanotrade_core nanotrade_http nanotrade_options)
+    target_compile_definitions(nanotrade PRIVATE
+        NANOTRADE_DATA_DIR="${PROJECT_SOURCE_DIR}/data"
+        NANOTRADE_SITE_DIR="${NANOTRADE_SITE_DIR}")
+endif()
 
 include(CTest)
 
-if(BUILD_TESTING)
+if(BUILD_TESTING AND NOT EMSCRIPTEN)
     file(GLOB NANOTRADE_TESTS CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/tests/*_tests.cpp)
     foreach(test_source IN LISTS NANOTRADE_TESTS)
         get_filename_component(test_name ${test_source} NAME_WE)

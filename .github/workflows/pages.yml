@@ -1,0 +1,94 @@
+name: Pages
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  EMSCRIPTEN_VERSION: "7.0.0"
+
+jobs:
+  build:
+    name: Browser build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Emscripten
+        uses: mymindstorm/setup-emsdk@v16
+        with:
+          version: ${{ env.EMSCRIPTEN_VERSION }}
+          actions-cache-folder: emsdk-cache
+
+      - name: Build the site
+        run: |
+          emcmake cmake -S . -B build-wasm -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF -DNANOTRADE_WARNINGS_AS_ERRORS=ON
+          cmake --build build-wasm --target nanotrade_site --parallel
+
+      - name: Build the command line
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
+          cmake --build build --target nanotrade --parallel
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install the checks' tools
+        run: npm ci --prefix web
+
+      # Every golden request must get, from the engine compiled to WebAssembly, the exact bytes CTest requires of the
+      # native build on Linux, macOS, and Windows.
+      - name: Check the WebAssembly build against the golden responses
+        run: node web/check.mjs build-wasm/site tests/golden
+
+      # The lab in the runner's Chrome, served as GitHub Pages serves it: it must start without errors, run every
+      # view, report a rule's mistake where it is, open a CSV, restore a backtest from a link, and fit a phone.
+      - name: Check the lab in headless Chrome
+        run: node web/ui-check.mjs build-wasm/site --screenshots site-screenshots
+
+      # The same page served by `nanotrade serve`, where it runs against the native build.
+      - name: Check the lab against the native server
+        run: node web/ui-check.mjs build-wasm/site --native build/nanotrade --screenshots site-screenshots/native
+
+      - name: Upload the screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: site-screenshots
+          path: site-screenshots/
+          if-no-files-found: ignore
+
+      - name: Upload the site
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: build-wasm/site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v5

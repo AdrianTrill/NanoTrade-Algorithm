@@ -1,6 +1,6 @@
 # NanoTrade
 
-NanoTrade is a backtesting engine in C++20. A strategy is a set of rules in a small language, such as `close > sma(close, 200) and rsi(close, 2) < 10`, read at each bar's close and traded at the next bar's open, so no rule can trade on prices it hasn't seen. The engine handles long and short positions, sizing by a share of equity or by a volatility target, stop losses, take profits, trailing stops, commissions, slippage, and the cost of borrowing for shorts, and reports more than thirty measures of the result against buying and holding. Then it asks whether the result is real: it searches parameters on every core and measures how much of the winner's edge luck explains, tests walk-forward, and resamples the returns to show what luck could have done. Everything it does is one JSON API, answered from the command line or from its own HTTP server, with the same bytes on every platform. It is tested on 68,292 daily bars of seven US stocks from 1962 to 2013, bundled with it, on Linux, macOS, and Windows.
+NanoTrade is a backtesting engine in C++20. A strategy is a set of rules in a small language, such as `close > sma(close, 200) and rsi(close, 2) < 10`, read at each bar's close and traded at the next bar's open, so no rule can trade on prices it hasn't seen. The engine handles long and short positions, sizing by a share of equity or by a volatility target, stop losses, take profits, trailing stops, commissions, slippage, and the cost of borrowing for shorts, and reports more than thirty measures of the result against buying and holding. Then it asks whether the result is real: it searches parameters on every core and measures how much of the winner's edge luck explains, tests walk-forward, and resamples the returns to show what luck could have done. Everything it does is one JSON API, answered from the command line, from its own HTTP server, or compiled to WebAssembly in a [lab in your browser](https://adriantrill.github.io/NanoTrade-Algorithm/), with the same bytes on every platform. It is tested on 68,292 daily bars of seven US stocks from 1962 to 2013, bundled with it, on Linux, macOS, and Windows.
 
 ## The rule language
 
@@ -97,6 +97,17 @@ const nanotrade::SweepResult search = nanotrade::run_sweep(bars, cache, crossove
 ```
 
 
+
+## The lab
+
+**[Open it on GitHub Pages](https://adriantrill.github.io/NanoTrade-Algorithm/).** The engine, compiled to WebAssembly, runs in your tab on the bundled data, so nothing you do leaves the page. `nanotrade serve` serves the same page against the native engine.
+
+- **Backtest.** A headline and a sentence that set the result against buying and holding, six figures, and one chart in four panes: the price with the strategy's indicators and trades, the position held, equity, and drawdowns. Below it are the monthly returns, every measure, the worst drawdowns, and the trades.
+- **Optimize.** The parameter map, and *Is the winner real?*: the deflated Sharpe ratio, the probability of backtest overfitting, the distribution of the winner's rank out of sample, and a verdict in words.
+- **Walk-forward** and **Monte Carlo**, each with its figures and tables.
+- **Rules as you type.** A strategy's rules are edited in place, and a mistake is underlined where it is. Markets, dates, sizing, stops, and costs are a click away, a CSV of your own opens with <kbd>O</kbd>, <kbd>?</kbd> lists every key, and the address keeps the whole run, so a link reopens it.
+
+The page is plain HTML, CSS, and JavaScript modules, with every chart drawn on canvas, and no framework or dependency. The engine runs in two Web Workers, one for backtests and one for research, so dragging a slider never waits behind a long search.
 
 ## What it finds
 
@@ -241,6 +252,15 @@ ctest --test-dir build --output-on-failure
 python3 tools/study.py build/nanotrade --check     # the study above, run again
 ```
 
-The tests work small cases by hand, checking every share, price, commission, and P&L of fills, stops, trailing stops, shorts, reversals, and sizing. They check each built-in strategy bar by bar against an independent version of it, on three stocks and two random markets; the indicators and the metrics against their definitions; and the CSV loader on each source's format and every bundled file. The research tests check that a sweep's cells equal separate backtests and come out bit for bit the same on one thread or eight, that the probability of overfitting is near one half on pure noise and small for a real edge among noise, that walk-forward windows tile the range and choose without peeking, and that resampling and random markets repeat exactly for a seed. The API's tests check every command and every way a request can be wrong, the server's tests check its parsing, limits, and refusals with real sockets, and the golden responses and the command line run end to end. On all seven stocks, under random signals and every combination of sizing, shorting, costs, and stops, four properties hold: the books balance (the final equity is the initial capital plus every trade's P&L), nothing looks ahead (rewriting every price after a bar changes nothing up to it), a run repeats exactly, and no fill takes a position past the leverage cap. CI runs them with GCC, Clang, Apple Clang, and MSVC, with warnings as errors, and under AddressSanitizer, UndefinedBehaviorSanitizer, and ThreadSanitizer. It also runs the study again, and fails if any number in it would change.
+The lab's WebAssembly build needs [Emscripten](https://emscripten.org); CI uses 7.0.0:
+
+```bash
+emcmake cmake -S . -B build-wasm -DCMAKE_BUILD_TYPE=Release
+cmake --build build-wasm                          # the static site, in build-wasm/site
+node web/serve.mjs build-wasm/site 8000           # served as GitHub Pages serves it
+./build/nanotrade serve --site build-wasm/site    # or against the native engine
+```
+
+The tests work small cases by hand, checking every share, price, commission, and P&L of fills, stops, trailing stops, shorts, reversals, and sizing. They check each built-in strategy bar by bar against an independent version of it, on three stocks and two random markets; the indicators and the metrics against their definitions; and the CSV loader on each source's format and every bundled file. The research tests check that a sweep's cells equal separate backtests and come out bit for bit the same on one thread or eight, that the probability of overfitting is near one half on pure noise and small for a real edge among noise, that walk-forward windows tile the range and choose without peeking, and that resampling and random markets repeat exactly for a seed. The API's tests check every command and every way a request can be wrong, the server's tests check its parsing, limits, and refusals with real sockets, and the golden responses and the command line run end to end. On all seven stocks, under random signals and every combination of sizing, shorting, costs, and stops, four properties hold: the books balance (the final equity is the initial capital plus every trade's P&L), nothing looks ahead (rewriting every price after a bar changes nothing up to it), a run repeats exactly, and no fill takes a position past the leverage cap. CI runs them with GCC, Clang, Apple Clang, and MSVC, with warnings as errors, and under AddressSanitizer, UndefinedBehaviorSanitizer, and ThreadSanitizer. It also runs the study again, and fails if any number in it would change. On every push, the WebAssembly build must give every golden response byte for byte, and headless Chrome drives the lab, in WebAssembly and against the native server, through every view, a rule with a mistake, a CSV, a link, and a phone's screen.
 
 Released under the [MIT License](LICENSE).

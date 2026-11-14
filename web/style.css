@@ -2159,6 +2159,43 @@ td.heat {
   color: var(--text-2);
 }
 
+/* System, light, or dark: three round buttons in a pill, the chosen one raised. */
+.theme-switch {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.theme-switch button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--muted);
+  transition: background 0.15s, color 0.15s;
+}
+
+.theme-switch button:hover {
+  color: var(--text);
+}
+
+.theme-switch button[aria-checked="true"] {
+  background: var(--fill);
+  box-shadow: 0 0 0 1px var(--border);
+  color: var(--text);
+}
+
+.theme-switch .icon {
+  width: 15px;
+  height: 15px;
+}
+
 .dialog {
   width: min(480px, calc(100vw - 32px));
   max-height: min(82vh, 780px);
@@ -2338,8 +2375,13 @@ td.heat {
 
 /* A touch screen has no keys to hint at. */
 @media (hover: none) {
-  .command-item kbd {
+  .command-item kbd,
+  #status-help {
     display: none;
+  }
+
+  .theme-switch {
+    margin-left: auto;
   }
 }
 
@@ -2846,6 +2888,11 @@ td.heat {
   .square-button {
     width: 40px;
     height: 40px;
+  }
+
+  .theme-switch button {
+    width: 36px;
+    height: 36px;
   }
 }
 

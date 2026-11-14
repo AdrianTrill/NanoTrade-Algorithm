@@ -12,7 +12,7 @@ import { runtime } from './runtime.js';
 import { MonteCarloView, OptimizeView, WalkForwardView } from './research.js';
 import { startShortcuts } from './shortcuts.js';
 import { dataSpec, fromQuery, request, saveQuery, state } from './state.js';
-import { currentTheme, startTheme, toggleTheme } from './theme.js';
+import { currentTheme, setTheme, startTheme, themeChoice, toggleTheme } from './theme.js';
 import { toast } from './toast.js';
 
 const VIEWS = ['backtest', 'optimize', 'walkforward', 'montecarlo'];
@@ -209,6 +209,11 @@ class App {
     list.push(
       { group: 'Actions', label: 'Copy a link to this backtest', keywords: 'share url', icon: 'link', hint: 'S', run: actions.s },
       { group: 'Actions', label: `Switch to the ${dark ? 'light' : 'dark'} theme`, keywords: 'theme appearance mode', icon: dark ? 'sun' : 'moon', hint: 'T', run: toggleTheme },
+    );
+    if (themeChoice() !== 'system') {
+      list.push({ group: 'Actions', label: 'Follow the system\'s theme', keywords: 'theme appearance mode auto', icon: 'monitor', run: () => setTheme('system') });
+    }
+    list.push(
       { group: 'Actions', label: this.backtest.log ? 'Linear price scale' : 'Logarithmic price scale', keywords: 'log chart', icon: 'chart', hint: 'L', run: actions.l },
       { group: 'Actions', label: candles ? 'Lines instead of candles' : 'Candles when zoomed in', keywords: 'chart ohlc', icon: 'chart', hint: 'C', run: actions.c },
       { group: 'Actions', label: 'Show the whole range', keywords: 'zoom reset chart', icon: 'chart', hint: 'R', run: actions.r },

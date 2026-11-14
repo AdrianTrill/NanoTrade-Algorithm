@@ -233,6 +233,17 @@ try {
   await shoot(page, 'dark');
   await page.keyboard.press('t');
   await sleep(400);
+  await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'dark' }]);
+  await page.waitForFunction(() => !document.querySelector('.toast'), { timeout: 10000 });  // the corner's notices cover the switch
+  await page.click('[data-theme-choice="system"]');
+  await sleep(400);
+  check(await page.evaluate(() => document.documentElement.dataset.theme === 'dark' && localStorage.getItem('nanotrade-theme') === null),
+    'the footer\'s System follows the system\'s theme');
+  await page.click('[data-theme-choice="light"]');
+  await sleep(400);
+  check(await page.evaluate(() => document.documentElement.dataset.theme === 'light' && localStorage.getItem('nanotrade-theme') === 'light'),
+    'and Light keeps to the light one');
+  await page.emulateMediaFeatures();
   await page.keyboard.press('?');
   check(await page.$eval('#shortcuts', (dialog) => dialog.open), '? lists the shortcuts');
   await page.keyboard.press('Escape');
@@ -253,6 +264,7 @@ try {
   check(await page.evaluate(() => document.querySelector('#command [aria-selected="true"]')?.textContent.startsWith('Walk-forward')),
     'typing finds a command');
   await page.keyboard.press('Escape');
+  await page.evaluate(() => window.scrollTo(0, 0));  // the crumbs' row scrolls away with the page on a wide screen
   await page.click('#crumb-data');
   check(await page.evaluate(() => {
     const dialog = document.querySelector('#command');

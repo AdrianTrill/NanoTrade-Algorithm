@@ -51,6 +51,7 @@
     <symbol id="i-x" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
     <symbol id="i-function" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4.5c-2.5-.8-4 .3-4.5 3L8.5 18c-.5 2.7-2 3.6-4.5 2.8"/><path d="M7 10h7"/><path d="m14.5 13 5 5M19.5 13l-5 5"/></g></symbol>
     <symbol id="i-sliders" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></g></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="8.5" y="8.5" width="12" height="12" rx="2"/><path d="M15.5 8.5V5.5a2 2 0 0 0-2-2h-8a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h3"/></g></symbol>
     <symbol id="i-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></g></symbol>
     <symbol id="i-slash" viewBox="0 0 24 24"><path d="M16.5 3.5 7.5 20.5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></symbol>
     <symbol id="i-chevrons" viewBox="0 0 24 24"><path d="m8 9.5 4-4 4 4M16 14.5l-4 4-4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
@@ -81,6 +82,7 @@
           <button class="spec-toggle" id="spec-toggle" aria-controls="spec" aria-expanded="false" title="The backtest's settings"><svg class="icon"><use href="#i-sliders"/></svg><span>Settings</span></button>
           <nav class="tools" aria-label="Page tools">
             <button class="button small" id="share" title="Copy a link to this backtest (S)"><svg class="icon"><use href="#i-link"/></svg><span>Share</span></button>
+            <button class="icon-button" id="api-open" title="This run as an API request (A)" aria-label="This run as an API request" aria-haspopup="dialog"><svg class="icon"><use href="#i-code"/></svg></button>
             <button class="icon-button" id="help" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts"><svg class="icon"><use href="#i-keyboard"/></svg></button>
             <button class="icon-button" id="theme" title="Dark theme (T)" aria-label="Switch to the dark theme"><svg class="icon"><use href="#i-moon"/></svg></button>
             <a class="icon-button source-link" href="https://github.com/AdrianTrill/NanoTrade-Algorithm" target="_blank" rel="noopener" title="Source on GitHub" aria-label="Source code on GitHub"><svg class="icon"><use href="#i-github"/></svg></a>
@@ -326,6 +328,22 @@
     <div class="command-list" id="command-list" role="listbox" aria-label="Commands"></div>
     <p class="command-empty" id="command-empty" role="status" hidden></p>
     <footer class="command-foot"><span><kbd>↑</kbd><kbd>↓</kbd> to move</span><span><kbd>↵</kbd> to choose</span><span><kbd>Esc</kbd> to close</span></footer>
+  </dialog>
+
+  <dialog id="api" class="dialog api" aria-labelledby="api-title">
+    <header><h2 id="api-title">This run as an API request</h2><button class="square-button" data-close aria-label="Close"><svg class="icon"><use href="#i-x"/></svg></button></header>
+    <div class="api-body">
+      <div class="api-bar">
+        <div class="segmented api-formats" role="radiogroup" aria-label="Format">
+          <button role="radio" data-format="json" aria-checked="true">JSON</button>
+          <button role="radio" data-format="cli" aria-checked="false" tabindex="-1">Command line</button>
+          <button role="radio" data-format="curl" aria-checked="false" tabindex="-1">curl</button>
+        </div>
+        <button class="button small" id="api-copy"><svg class="icon"><use href="#i-copy"/></svg><span>Copy</span></button>
+      </div>
+      <pre class="api-code" id="api-code" tabindex="0" aria-label="The request"></pre>
+      <p class="note" id="api-note"></p>
+    </div>
   </dialog>
 
   <dialog id="reference" class="dialog wide" aria-label="The rule language">

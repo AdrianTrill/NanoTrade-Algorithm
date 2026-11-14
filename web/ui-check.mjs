@@ -284,6 +284,20 @@ try {
   await nextBacktest(page, before);
   check(/on Ford/.test(await text(page, '#headline')) && (await text(page, '#crumb-data-label')) === 'F · Ford',
     'and choosing another backtests it there');
+
+  // The run as an API request, which the engine answers with the backtest on the page.
+  await page.keyboard.press('a');
+  await sleep(300);
+  const asked = await page.evaluate(async () => {
+    const json = JSON.parse(document.querySelector('#api-code').textContent);
+    const response = await window.nanotrade.engine.request(json);
+    return { open: document.querySelector('#api').open, command: json.command,
+      same: response.ok && response.result.metrics.sharpe === window.nanotrade.backtest.result.metrics.sharpe };
+  });
+  check(asked.open && asked.command === 'backtest' && asked.same, 'A shows the run as an API request, which gives the backtest on the page');
+  await page.click('#api [data-format="cli"]');
+  check((await text(page, '#api-code')).startsWith("nanotrade api <<'EOF'"), 'and as a command line');
+  await page.keyboard.press('Escape');
   const folder = mkdtempSync(join(tmpdir(), 'nanotrade-ui-'));
   const lines = ['Date,Open,High,Low,Close,Volume'];
   let close = 100;

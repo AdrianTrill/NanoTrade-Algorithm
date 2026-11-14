@@ -17,6 +17,7 @@ export const SHORTCUTS = [
   ['C', 'Candles when zoomed in'],
   ['R', 'Show the whole range'],
   ['S', 'Copy a link to this backtest'],
+  ['A', 'This run as an API request: JSON, the command line, or curl'],
   ['T', 'Light or dark theme'],
   ['?', 'This list'],
 ];

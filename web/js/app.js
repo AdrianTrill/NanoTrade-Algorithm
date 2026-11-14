@@ -1,4 +1,5 @@
 // NanoTrade Lab: wires the settings to the engine and the views.
+import { ApiDialog } from './api.js';
 import { BacktestView } from './backtest.js';
 import { avatar, CommandMenu } from './command.js';
 import { Controls } from './controls.js';
@@ -74,7 +75,7 @@ class App {
 
     for (const tab of $$('.view')) tab.addEventListener('click', () => this.showView(tab.dataset.view));
     for (const list of $$('[role="tablist"]')) rovingTabs(list);
-    for (const node of $$('.table-scroll, .command-list, .tabs, .sections')) scrollEdges(node);
+    for (const node of $$('.table-scroll, .command-list, .tabs, .sections, .api-code')) scrollEdges(node);
     $('#share').addEventListener('click', () => this.share());
     $('#help').addEventListener('click', () => $('#shortcuts').showModal());
     $('#status-help').addEventListener('click', () => $('#shortcuts').showModal());
@@ -103,6 +104,7 @@ class App {
       c: () => $('#candles').click(),
       r: () => this.backtest.chart.reset(),
       s: () => this.share(),
+      a: () => this.api.open(this.currentRequest()),
       t: () => $('#theme').click(),
       '?': () => {
         const dialog = $('#shortcuts');
@@ -116,6 +118,8 @@ class App {
       },
     };
     startShortcuts(actions);
+    this.api = new ApiDialog();
+    $('#api-open').addEventListener('click', actions.a);
     this.menu = new CommandMenu(() => this.commands(actions));
     $('#command-open').addEventListener('click', () => this.menu.open());
     $('#crumb-data').addEventListener('click', () => this.menu.open('data'));
@@ -215,6 +219,7 @@ class App {
     const candles = $('#candles').getAttribute('aria-pressed') === 'true';
     list.push(
       { group: 'Actions', label: 'Copy a link to this backtest', keywords: 'share url', icon: 'link', hint: 'S', run: actions.s },
+      { group: 'Actions', label: 'This run as an API request', keywords: 'json curl command line cli developer code', icon: 'code', hint: 'A', run: actions.a },
       { group: 'Actions', label: `Switch to the ${dark ? 'light' : 'dark'} theme`, keywords: 'theme appearance mode', icon: dark ? 'sun' : 'moon', hint: 'T', run: toggleTheme },
     );
     if (themeChoice() !== 'system') {
@@ -230,6 +235,12 @@ class App {
       { group: 'Actions', label: 'Source on GitHub', keywords: 'code repository', icon: 'github', run: () => window.open(SOURCE, '_blank', 'noopener') },
     );
     return list;
+  }
+
+  // The request the open view sends: its research run, or the backtest when it has none yet.
+  currentRequest() {
+    const view = { optimize: this.optimize, walkforward: this.walk, montecarlo: this.monte }[state.view];
+    return view?.job() ?? request('backtest');
   }
 
   // Chooses an option as if from its select, so the change goes the way a choice there goes.

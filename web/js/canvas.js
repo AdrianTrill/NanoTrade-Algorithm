@@ -19,10 +19,9 @@ export function surface(canvas) {
   return { context, width, height };
 }
 
-// The page's three voices: the interface's sans, a monospace for numbers, and a serif for titles.
+// The page's two voices: the interface's sans for titles and labels, and its monospace for numbers.
 export const font = (size, weight = 500) => `${weight} ${size}px ${palette.fontUi || 'system-ui, sans-serif'}`;
 export const mono = (size, weight = 400) => `${weight} ${size}px ${palette.fontMono || 'ui-monospace, monospace'}`;
-export const serif = (size, weight = 700) => `${weight} ${size}px ${palette.fontSerif || 'Georgia, serif'}`;
 
 // A pixel-aligned coordinate for crisp one-pixel lines.
 export const crisp = (value) => Math.round(value) + 0.5;
@@ -60,7 +59,7 @@ export function logTicks(low, high, count) {
   return ticks.filter((_, i) => i % stride === 0);
 }
 
-// A label set in reverse, ink on paper turned paper on ink, such as the crosshair's readouts on an axis.
+// A label set in reverse, the page's color on the text's, such as the crosshair's readouts on an axis.
 export function tag(context, text, x, y, align = 'left') {
   context.font = mono(11, 500);
   const width = Math.ceil(context.measureText(text).width) + 10;
@@ -90,7 +89,7 @@ export function mix(a, b, t) {
 export function diverging(value, scale, { base = palette.surfaceSunken, strength = 1 } = {}) {
   if (!Number.isFinite(value)) return null;
   const t = Math.max(-1, Math.min(1, value / (scale || 1)));
-  const from = base?.startsWith('#') ? base : '#ebe4d6';
+  const from = base?.startsWith('#') ? base : '#f2f2f2';
   const amount = (0.08 + 0.92 * Math.abs(t)) * strength;
   return mix(from, t >= 0 ? palette.up : palette.down, amount);
 }

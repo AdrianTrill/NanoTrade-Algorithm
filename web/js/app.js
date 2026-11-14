@@ -67,6 +67,8 @@ class App {
     this.walk = new WalkForwardView({ engine: this.engine, catalog: this.catalog, context, onError });
     this.monte = new MonteCarloView({ engine: this.engine, context, onError });
     startTheme(() => this.redraw());
+    // Geist can arrive after the first drawing, which then used a fallback: the canvases draw again in it.
+    document.fonts?.addEventListener('loadingdone', () => this.redraw());
 
     for (const tab of $$('.view')) tab.addEventListener('click', () => this.showView(tab.dataset.view));
     for (const list of $$('[role="tablist"]')) rovingTabs(list);
@@ -386,7 +388,8 @@ async function main() {
     });
     setEngineStatus('Loading the engine', 'busy');
     const engine = await connect(manifest);
-    $('#runtime-label').textContent = engine.runtime === 'wasm' ? 'Engine in this tab, WebAssembly' : 'Engine on the native server';
+    $('#runtime-label').textContent = engine.runtime === 'wasm' ? 'WebAssembly' : 'Native';
+    $('#runtime').title = engine.runtime === 'wasm' ? 'The engine runs in this tab, compiled to WebAssembly' : 'The engine runs on the native server that serves this page';
     setEngineStatus(engine.runtime === 'wasm' ? `NanoTrade ${engine.version}, compiled to WebAssembly` : `NanoTrade ${engine.version}, native`, 'ready');
     const catalog = await engine.request({ command: 'catalog' });
     if (!catalog.ok) throw new Error(catalog.error.message);
@@ -403,7 +406,7 @@ async function main() {
     $('#headline').textContent = 'The engine didn\'t start';
     $('#deck').replaceChildren(`${reason}. Reloading usually fixes this; if it doesn't, the browser may be blocking WebAssembly or the page's data. `,
       element('button', { class: 'button', onclick: () => location.reload() }, 'Reload'));
-    $('#runtime-label').textContent = 'The engine didn\'t start';
+    $('#runtime-label').textContent = 'Not running';
     setEngineStatus(`The engine failed to start: ${reason}`, 'failed');
     document.body.dataset.error = error.message;
     throw error;

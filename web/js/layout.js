@@ -7,12 +7,21 @@ import { state } from './state.js';
 const narrow = matchMedia('(max-width: 1000px)');
 const phone = matchMedia('(max-width: 640px)');
 
-// Keeps --masthead-height current, so a jump to part of the page stops below the sticky masthead.
+// Keeps --masthead-height at what the masthead keeps in view as the page scrolls (on a wide screen its top row scrolls
+// away and the views stay), so a jump to part of the page stops below it. Once that row is out of sight the page is
+// `stuck`, which slides the mark into the row of views, as a dashboard's does.
 export function trackMasthead() {
   const masthead = $('.masthead');
-  const update = () => document.documentElement.style.setProperty('--masthead-height', `${masthead.offsetHeight}px`);
+  const update = () => {
+    const top = Math.min(0, parseFloat(getComputedStyle(masthead).top) || 0);
+    document.documentElement.style.setProperty('--masthead-height', `${masthead.offsetHeight + top}px`);
+  };
   new ResizeObserver(update).observe(masthead);
+  narrow.addEventListener('change', update);
   update();
+  // The root shrinks by a pixel at the top, since a row that has just left touches the viewport's edge.
+  new IntersectionObserver(([entry]) => document.documentElement.classList.toggle('stuck', !entry.isIntersecting),
+    { rootMargin: '-1px 0px 0px 0px' }).observe($('.masthead-row'));
 }
 
 export class Drawer {

@@ -128,22 +128,22 @@ export class TimeChart {
   }
 
   renderTitle(ctx, pane, top, plotWidth) {
-    ctx.font = font(10.5, 700);
-    if ('letterSpacing' in ctx) ctx.letterSpacing = '0.08em';
-    ctx.fillStyle = palette.muted;
+    ctx.font = font(12, 500);
+    ctx.fillStyle = palette.text2;
     ctx.textAlign = 'left';
-    const title = pane.title.toUpperCase();
+    const title = pane.title;
     ctx.fillText(title, LEFT, top + 12);
     if (pane.note) {
       // The note goes at the right, if it fits beside the title.
-      const note = pane.note.toUpperCase();
-      if (ctx.measureText(title).width + ctx.measureText(note).width + 24 < plotWidth) {
-        ctx.fillStyle = palette.faint;
+      const titleWidth = ctx.measureText(title).width;
+      ctx.font = font(11.5, 400);
+      const note = pane.note;
+      if (titleWidth + ctx.measureText(note).width + 24 < plotWidth) {
+        ctx.fillStyle = palette.muted;
         ctx.textAlign = 'right';
         ctx.fillText(note, LEFT + plotWidth, top + 12);
       }
     }
-    if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
   }
 
   // The visible range of a pane's values, padded, as a mapping to y.

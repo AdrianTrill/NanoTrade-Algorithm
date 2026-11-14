@@ -110,7 +110,7 @@ export class Heatmap {
         const h = Math.max(1, Math.abs(y(v) - y(0)));
         ctx.fillRect(x0 + gap, top, Math.max(1, g.cw - 2 * gap), h);
         if (i === this.result.best?.index || i === this.hover) {
-          ctx.strokeStyle = i === this.hover ? palette.accent : palette.text;
+          ctx.strokeStyle = i === this.hover ? palette.strategy : palette.text;
           ctx.lineWidth = 2;
           ctx.strokeRect(x0 + gap + 1, top + 1, Math.max(1, g.cw - 2 * gap - 2), Math.max(1, h - 2));
           ctx.lineWidth = 1;
@@ -156,7 +156,7 @@ export class Heatmap {
         ctx.lineWidth = 1;
       };
       if (this.result.best) outline(this.result.best.index, palette.text, 2);
-      if (this.hover !== null) outline(this.hover, palette.accent, 2);
+      if (this.hover !== null) outline(this.hover, palette.strategy, 2);
       const current = this.currentIndex();
       if (current !== null) {
         const i = current % g.nx;
@@ -179,9 +179,9 @@ export class Heatmap {
       ctx.translate(13, (g.top + g.bottom) / 2);
       ctx.rotate(-Math.PI / 2);
       ctx.textAlign = 'center';
-      ctx.font = font(10.5, 700);
+      ctx.font = font(12, 500);
       ctx.fillStyle = palette.text2;
-      ctx.fillText(this.result.y.param.toUpperCase(), 0, 0);
+      ctx.fillText(this.result.y.param, 0, 0);
       ctx.restore();
     }
     ctx.strokeStyle = palette.text;
@@ -196,9 +196,9 @@ export class Heatmap {
     this.result.x.values.forEach((v, i) => {
       if (i % xStride === 0) ctx.fillText(format.number(v, 2), g.left + (i + 0.5) * g.cw, g.bottom + 17);
     });
-    ctx.font = font(10.5, 700);
+    ctx.font = font(12, 500);
     ctx.fillStyle = palette.text2;
-    ctx.fillText(this.result.x.param.toUpperCase(), (g.left + g.right) / 2, g.bottom + 37);
+    ctx.fillText(this.result.x.param, (g.left + g.right) / 2, g.bottom + 37);
     this.drawScale(ctx, g, center, spread);
   }
 

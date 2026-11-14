@@ -133,12 +133,12 @@ export function scatter(canvas, points, { format = (v) => v.toFixed(2), xLabel =
   }
   ctx.globalAlpha = 1;
   ctx.fillStyle = palette.text2;
-  ctx.font = font(10.5, 700);
+  ctx.font = font(12, 500);
   ctx.textAlign = 'center';
-  ctx.fillText(xLabel.toUpperCase(), (left + right) / 2, height - 4);
+  ctx.fillText(xLabel, (left + right) / 2, height - 4);
   ctx.save();
   ctx.translate(11, (top + bottom) / 2);
   ctx.rotate(-Math.PI / 2);
-  ctx.fillText(yLabel.toUpperCase(), 0, 0);
+  ctx.fillText(yLabel, 0, 0);
   ctx.restore();
 }

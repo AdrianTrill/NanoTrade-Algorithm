@@ -1,5 +1,5 @@
 // The lab in headless Chrome: it must start without errors, run a backtest, react to its settings, report a rule's
-// error where it is, run a sweep, a walk-forward test, and Monte Carlo resampling, open a CSV, switch editions, answer
+// error where it is, run a sweep, a walk-forward test, and Monte Carlo resampling, open a CSV, switch themes, answer
 // its keys, restore a backtest from a link, and fit a phone's screen, with the settings in a sheet over the result.
 //
 //   node web/ui-check.mjs SITE_DIR [--native PATH_TO_NANOTRADE] [--screenshots DIR]
@@ -65,8 +65,8 @@ async function open(query = '', { width = 1440, height = 900, mobile = false, th
   page.on('response', (response) => {
     if (response.status() >= 400) problems.push(`HTTP ${response.status()}: ${response.url()}`);
   });
-  await page.evaluateOnNewDocument((edition) => {
-    if (location.protocol.startsWith('http')) localStorage.setItem('nanotrade-theme', edition);
+  await page.evaluateOnNewDocument((choice) => {
+    if (location.protocol.startsWith('http')) localStorage.setItem('nanotrade-theme', choice);
   }, theme);
   await page.setViewport({ width, height, deviceScaleFactor: 1, isMobile: mobile, hasTouch: mobile });
   await page.goto(`${url}${query}`, { waitUntil: 'load' });
@@ -139,7 +139,7 @@ try {
   await page.evaluate(() => document.activeElement.blur());
   check(!(await page.evaluate(() => document.body.dataset.error)), 'the engine starts');
   const runtime = await text(page, '#runtime-label');
-  check(native ? /native/.test(runtime) : /WebAssembly/.test(runtime), `it runs ${native ? 'on the native server' : 'in WebAssembly'}: "${runtime}"`);
+  check(native ? /native/i.test(runtime) : /WebAssembly/.test(runtime), `it runs ${native ? 'on the native server' : 'in WebAssembly'}: "${runtime}"`);
   check(/SMA crossover on Apple/.test(await text(page, '#headline')), 'the default backtest is the SMA crossover on Apple');
   check((await count(page, '#kpis .figure')) === 6, 'six headline figures');
   check((await count(page, '#trades tbody tr')) > 10, 'the trade log lists the trades');
@@ -217,7 +217,7 @@ try {
   check((await count(page, '#histograms canvas')) === 3, 'Monte Carlo resampling draws its three distributions');
   await shoot(page, 'montecarlo');
 
-  // Keys, editions, the reference, and a file.
+  // Keys, themes, the reference, and a file.
   await page.keyboard.press('1');
   check((await page.$eval('.view[aria-selected="true"]', (tab) => tab.dataset.view)) === 'backtest', '1 returns to the backtest');
   await page.focus('#tab-backtest');
@@ -228,8 +228,8 @@ try {
   await page.evaluate(() => document.activeElement.blur());
   await page.keyboard.press('t');
   await sleep(400);
-  check((await page.evaluate(() => document.documentElement.dataset.theme)) === 'dark', 'T switches to the night edition');
-  await shoot(page, 'night');
+  check((await page.evaluate(() => document.documentElement.dataset.theme)) === 'dark', 'T switches to the dark theme');
+  await shoot(page, 'dark');
   await page.keyboard.press('t');
   await sleep(400);
   await page.keyboard.press('?');

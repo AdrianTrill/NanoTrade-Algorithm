@@ -658,11 +658,11 @@ export class MonteCarloView extends ResearchView {
       return;
     }
     if (!container.children.length) {
-      const exhibit = (number, title, id) => element('figure', { class: 'exhibit' },
+      const exhibit = (title, id) => element('figure', { class: 'exhibit' },
         element('figcaption', { class: 'exhibit-head' }, element('div', { class: 'exhibit-text' },
-          element('span', { class: 'exhibit-label' }, `Figure ${number}`), element('h2', { class: 'exhibit-title' }, title))),
+          element('h2', { class: 'exhibit-title' }, title))),
         element('div', { class: 'chart-wrap' }, element('canvas', { id })));
-      container.append(exhibit('6a', 'Annual return of the paths', 'hist-cagr'), exhibit('6b', 'Their worst drawdowns', 'hist-dd'), exhibit('6c', 'Their Sharpe ratios', 'hist-sharpe'));
+      container.append(exhibit('Annual return of the paths', 'hist-cagr'), exhibit('Their worst drawdowns', 'hist-dd'), exhibit('Their Sharpe ratios', 'hist-sharpe'));
     }
     const d = r.distributions;
     histogram($('#hist-cagr'), d.cagr, { marker: r.metrics.cagr, markerLabel: 'backtest', format: (v) => format.percent(v, 0), split: 0 });

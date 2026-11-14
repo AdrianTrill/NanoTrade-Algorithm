@@ -1,103 +1,123 @@
 <!doctype html>
-<!-- The link-preview card, also the README's header: 1200 by 630. web/capture.mjs fills in the {{PLACEHOLDERS}} with
-     a figure and timings from the lab, and screenshots it into web/social.png. -->
+<!-- The link-preview card, also the README's header: 1200 by 630, in the lab's Geist style. web/capture.mjs fills in the
+     {{PLACEHOLDERS}} with the fonts, a figure, and timings from the lab, and screenshots it into web/social.png. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <style>
+  @font-face { font-family: "Geist"; src: url(data:font/woff2;base64,{{GEIST}}) format("woff2"); font-weight: 100 900; }
+  @font-face { font-family: "Geist Mono"; src: url(data:font/woff2;base64,{{GEIST_MONO}}) format("woff2"); font-weight: 100 900; }
   :root {
-    --paper: #f4efe5;
-    --rule: #d9cfbe;
-    --ink: #1c1a17;
-    --ink-2: #4a443c;
-    --muted: #776f62;
-    --accent: #c2410c;
-    --serif: "Iowan Old Style", "Charter", "Bitstream Charter", Cambria, Georgia, serif;
-    --ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, "Helvetica Neue", Arial, sans-serif;
-    --mono: "SF Mono", SFMono-Regular, ui-monospace, Menlo, Consolas, monospace;
+    --text: #171717;
+    --muted: #666;
+    --border: #eaeaea;
+    --sunken: #fafafa;
+    --ui: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --mono: "Geist Mono", ui-monospace, Menlo, monospace;
   }
   * { box-sizing: border-box; margin: 0; }
   html, body { width: 1200px; height: 630px; overflow: hidden; }
   body {
+    position: relative;
     display: flex;
     flex-direction: column;
-    padding: 42px 56px 36px;
-    background: var(--paper);
-    color: var(--ink);
-    font-family: var(--serif);
+    padding: 40px 56px 34px;
+    background: #fff;
+    color: var(--text);
+    font-family: var(--ui);
+    -webkit-font-smoothing: antialiased;
   }
-  header {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding-bottom: 15px;
-    border-bottom: 2px solid var(--ink);
+  /* A faint grid that fades out toward the middle. */
+  body::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+      linear-gradient(#f0f0f0 1px, transparent 1px) 0 0 / 48px 48px,
+      linear-gradient(90deg, #f0f0f0 1px, transparent 1px) 0 0 / 48px 48px;
+    mask-image: radial-gradient(ellipse 80% 90% at 0% 0%, #000 10%, transparent 70%);
   }
-  header svg { width: 40px; height: 40px; }
-  .name { font-size: 30px; font-weight: 600; letter-spacing: -0.01em; }
-  .kicker {
+  header { display: flex; align-items: center; gap: 12px; }
+  header svg { width: 36px; height: 36px; }
+  .name { font-size: 26px; font-weight: 600; letter-spacing: -0.03em; }
+  .slash { color: #d4d4d4; font-size: 28px; font-weight: 300; }
+  .crumb { color: var(--muted); font-size: 22px; font-weight: 500; letter-spacing: -0.02em; }
+  .badge {
     margin-left: auto;
-    color: var(--accent);
-    font: 600 13px/1 var(--ui);
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
+    padding: 7px 14px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--muted);
+    font: 500 15px/1 var(--ui);
   }
-  main {
-    display: grid;
-    flex: 1;
-    grid-template-columns: 1fr 548px;
-    gap: 46px;
-    padding-top: 30px;
+  .badge i { display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: #18843a; vertical-align: 1px; }
+  main { display: grid; flex: 1; grid-template-columns: 1fr 540px; gap: 44px; padding-top: 34px; }
+  h1 { font-size: 58px; font-weight: 600; line-height: 1.04; letter-spacing: -0.05em; }
+  h1 em {
+    font-style: normal;
+    background: linear-gradient(90deg, #007cf0, #00dfd8);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
-  h1 { font-size: 56px; font-weight: 600; line-height: 1.03; letter-spacing: -0.022em; }
-  h1 em { color: var(--accent); }
-  .deck { margin-top: 20px; color: var(--ink-2); font-size: 22px; line-height: 1.4; }
+  .deck { margin-top: 18px; color: var(--muted); font-size: 21px; line-height: 1.45; letter-spacing: -0.01em; }
   .facts {
     display: grid;
-    grid-template-columns: repeat(3, auto);
-    justify-content: start;
-    gap: 30px;
-    margin-top: 28px;
-    padding-top: 16px;
-    border-top: 1px solid var(--rule);
+    grid-template-columns: repeat(3, 1fr);
+    margin-top: 26px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  }
+  .facts span { padding: 14px 18px 15px; color: var(--muted); font: 500 14px/1.3 var(--ui); }
+  .facts span + span { border-left: 1px solid var(--border); }
+  .facts b { display: block; margin-bottom: 4px; color: var(--text); font: 600 26px/1.1 var(--ui); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+  figure {
+    align-self: start;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 16px 32px -16px rgba(0, 0, 0, 0.12);
+  }
+  .title { padding: 15px 18px 2px; font: 600 15px/1.3 var(--ui); }
+  .sub { padding: 0 18px 6px; color: var(--muted); font: 13px/1.4 var(--ui); }
+  figure img { display: block; width: 538px; height: 296px; object-fit: contain; object-position: center; }
+  figcaption {
+    display: flex;
+    gap: 26px;
+    padding: 12px 18px 13px;
+    border-top: 1px solid var(--border);
+    background: var(--sunken);
     color: var(--muted);
     font: 500 14px/1.3 var(--ui);
   }
-  .facts b { display: block; margin-bottom: 5px; color: var(--ink); font: 600 25px/1.1 var(--mono); letter-spacing: -0.02em; }
-  figure { padding-top: 10px; border-top: 1px solid var(--rule); }
-  .label {
-    margin-bottom: 10px;
-    color: var(--muted);
-    font: 600 12px/1 var(--ui);
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-  }
-  figure img {
-    display: block;
-    width: 548px;
-    height: 318px;
-    object-fit: contain;
-    object-position: center;
-  }
-  figcaption { margin-top: 11px; color: var(--ink-2); font-size: 16.5px; line-height: 1.38; }
-  figcaption b { color: var(--ink); font-family: var(--mono); font-size: 15px; font-weight: 600; }
+  figcaption b { display: block; color: var(--text); font: 600 21px/1.15 var(--ui); letter-spacing: -0.03em; }
   footer {
     display: flex;
     justify-content: space-between;
     margin-top: auto;
-    padding-top: 13px;
-    border-top: 1px solid var(--rule);
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
     color: var(--muted);
-    font: 500 15px/1 var(--mono);
+    font: 400 15px/1 var(--mono);
   }
 </style>
 </head>
 <body>
-  <header>{{LOGO}}<span class="name">NanoTrade</span><span class="kicker">A backtesting lab</span></header>
+  <header>
+    <svg viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#171717"/><path d="M10 22.5v-13l12 13v-13" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span class="name">NanoTrade</span><span class="slash">/</span><span class="crumb">Backtesting lab</span>
+    <span class="badge"><i></i>Runs in your browser</span>
+  </header>
   <main>
     <div>
       <h1>Backtest a strategy, then ask whether it was <em>luck</em>.</h1>
-      <p class="deck">A C++20 engine with its own rule language, running in your browser in WebAssembly on half a century of daily bars.</p>
+      <p class="deck">A C++20 engine with its own rule language, in WebAssembly, on half a century of daily bars.</p>
       <div class="facts">
         <span><b>{{BARS}}</b>daily bars</span>
         <span><b>{{BACKTEST}}</b>a backtest</span>
@@ -105,9 +125,10 @@
       </div>
     </div>
     <figure>
-      <div class="label">Figure 1 · The parameter map</div>
+      <div class="title">Sharpe ratio across 300 pairs of SMA windows</div>
+      <div class="sub">{{SUBTITLE}}</div>
       <img src="{{FIGURE}}" alt="">
-      <figcaption>{{CAPTION}}</figcaption>
+      <figcaption><span><b>{{DSR}}</b>deflated Sharpe ratio</span><span><b>{{PBO}}</b>probability of overfitting</span></figcaption>
     </figure>
   </main>
   <footer><span>adriantrill.github.io/NanoTrade-Algorithm</span><span>C++20 · WebAssembly · JSON API</span></footer>

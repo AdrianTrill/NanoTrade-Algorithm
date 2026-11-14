@@ -33,7 +33,8 @@ const sweep = 'sx_=fast:10:200:10&sy_=slow:20:400:20';
 async function open(query, { theme = 'light', width = 1600, height = 1200, scale = 1.25, mobile = false } = {}) {
   const context = await browser.createBrowserContext();
   const page = await context.newPage();
-  await page.evaluateOnNewDocument((edition) => localStorage.setItem('nanotrade-theme', edition), theme);
+  await page.evaluateOnNewDocument((choice) => localStorage.setItem('nanotrade-theme', choice), theme);
+  await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: theme }]);
   await page.setViewport({ width, height, deviceScaleFactor: scale, isMobile: mobile, hasTouch: mobile });
   await page.goto(`${url}${query}`, { waitUntil: 'load' });
   await page.waitForFunction(() => document.body.dataset.ready === 'true' || document.body.dataset.error, { timeout: 90_000 });
@@ -64,6 +65,14 @@ async function typeRule(page, index, rule) {
   await area.type(rule, { delay: 45 });
 }
 
+// Opens the command menu, as ⌘K does.
+async function commandMenu(page) {
+  await page.keyboard.down('Meta');
+  await page.keyboard.press('k');
+  await page.keyboard.up('Meta');
+  await wait(500);
+}
+
 // Shortcuts don't fire while a field has the focus.
 async function press(page, key) {
   await page.evaluate(() => document.activeElement?.blur());
@@ -78,14 +87,14 @@ async function scrollTo(page, selector) {
   await wait(900);
 }
 
-// The backtest, in the paper edition, tall enough for the whole chart.
+// The backtest, in the light theme, tall enough for the whole chart.
 let page = await open('?d=AAPL&from=2003-01-01&p=fast:20,slow:100&cb=1&sb=2', { height: 1400 });
 await page.screenshot({ path: join(assets, 'backtest.png') });
 const backtestMs = await page.$eval('#runtime-detail', (node) => node.textContent);
 await page.browserContext().close();
 console.log(`backtest.png (${backtestMs})`);
 
-// Custom rules, with a mistake the editor points at, in the night edition.
+// Custom rules, with a mistake the editor points at, in the dark theme.
 const rules = new URLSearchParams({
   d: 'F',
   s: 'custom',
@@ -142,30 +151,36 @@ const figure = await mapFigure.screenshot({ encoding: 'base64' });
 await page.browserContext().close();
 const manifest = JSON.parse(readFileSync(join(site, 'data', 'manifest.json'), 'utf8'));
 const bars = manifest.datasets.reduce((sum, dataset) => sum + dataset.bars, 0);
-const logo = readFileSync(join(here, 'favicon.svg'), 'utf8');
+const font = (name) => readFileSync(join(here, 'fonts', name)).toString('base64');
 const card = readFileSync(join(here, 'social-card.html'), 'utf8')
-  .replace('{{LOGO}}', logo)
+  .replace('{{GEIST}}', font('Geist-Variable.woff2'))
+  .replace('{{GEIST_MONO}}', font('GeistMono-Variable.woff2'))
   .replace('{{BARS}}', bars.toLocaleString('en-US'))
   .replace('{{BACKTEST}}', backtestMs.replace(/\.\d+ ms/, ' ms'))
   .replace('{{SWEEP}}', `${Number(sweepTime).toFixed(1)} s`)
+  .replace('{{SUBTITLE}}', 'The SMA crossover on General Electric, 1962 to 2013')
   .replace('{{FIGURE}}', `data:image/png;base64,${figure}`)
-  .replace('{{CAPTION}}', `The SMA crossover's Sharpe ratio for 300 pairs of windows on General Electric, 1962 to 2013. `
-    + `Deflated Sharpe ratio <b>${dsr}</b>; probability of backtest overfitting <b>${pbo}</b>.`);
+  .replace('{{DSR}}', dsr)
+  .replace('{{PBO}}', pbo);
 const cardPage = await browser.newPage();
 await cardPage.setViewport({ width: 1200, height: 630, deviceScaleFactor: 1 });
 await cardPage.setContent(card, { waitUntil: 'load' });
+await cardPage.evaluate(() => document.fonts.ready);
 await cardPage.screenshot({ path: join(here, 'social.png') });
 await cardPage.close();
 console.log(`social.png (backtest ${backtestMs}, search ${sweepTime} s, DSR ${dsr}, PBO ${pbo})`);
 
-// The demo: a backtest, another market, a rule written by hand, a search and its verdict, a walk-forward test,
-// resampling, and the night edition.
+// The demo: a backtest, another market found in the command menu, a rule written by hand, the strategy switched back
+// from its breadcrumb, a search and its verdict, a walk-forward test, resampling, and the dark theme.
 const video = join(tmpdir(), 'nanotrade-demo.webm');
 page = await open('?d=AAPL&cb=1&sb=2', { width: 1440, height: 900, scale: 1 });
 const recorder = await page.screencast({ path: video });
 await wait(1500);
+await commandMenu(page);
+await page.keyboard.type('boeing', { delay: 110 });
+await wait(500);
 let before = await counter(page, 'backtests');
-await press(page, ']');
+await page.keyboard.press('Enter');
 await after(page, 'backtests', before);
 await wait(1200);
 await press(page, 'e');
@@ -178,8 +193,12 @@ await wait(1000);
 await scrollTo(page, '#chart');
 await wait(1600);
 await scrollTo(page, null);
+await page.click('#crumb-strategy');
+await wait(500);
+await page.keyboard.type('sma', { delay: 110 });
+await wait(400);
 before = await counter(page, 'backtests');
-await page.select('#strategy', 'sma_cross');
+await page.keyboard.press('Enter');
 await after(page, 'backtests', before);
 await wait(500);
 before = await counter(page, 'sweep');

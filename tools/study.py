@@ -6,6 +6,8 @@
 2. What a search finds: the SMA crossover's 300 pairs of windows (fast 10 to 200 days, slow 20 to 400, fast below
    slow), searched on each stock and on 20 random markets that have nothing to find.
 3. Walk-forward: the same search on four years at a time, each winner traded on the year after.
+4. Portfolios: each strategy on all seven stocks at once, equally weighted and rebalanced monthly, against the median
+   stock alone over the same years.
 
 The engine is deterministic, so the study is too. This writes the results to docs/study.json and the tables into the
 README, between its <!-- study:NAME --> markers; with --check it writes nothing and fails unless a fresh run
@@ -90,6 +92,21 @@ def walk_forward(binary, symbol):
             "cagr": r(m["cagr"]), "hold_cagr": r(b["cagr"]), "efficiency": r(result["efficiency"])}
 
 
+def portfolio(binary, strategy):
+    result = call(binary, {"command": "portfolio", "strategy": {"id": strategy}, "config": COSTS,
+                           "portfolio": {"markets": STOCKS, "weighting": "equal", "rebalance": "monthly"},
+                           "output": {"series": False}})
+    m, markets, matrix = result["metrics"], result["markets"], result["correlation"]
+    pairs = [matrix[a][b] for a in range(len(matrix)) for b in range(a + 1, len(matrix)) if matrix[a][b] is not None]
+    return {"strategy": strategy, "from": result["range"]["from"], "to": result["range"]["to"],
+            "sharpe": r(m["sharpe"]), "stock_sharpe": median(market["metrics"]["sharpe"] for market in markets),
+            "cagr": r(m["cagr"]), "stock_cagr": median(market["metrics"]["cagr"] for market in markets),
+            "max_drawdown": r(m["max_drawdown"]),
+            "stock_max_drawdown": median(market["metrics"]["max_drawdown"] for market in markets),
+            "correlation": r(statistics.mean(pairs)) if pairs else None,
+            "rebalance_cost": r(result["portfolio"]["rebalance_cost"] / (m["final_equity"] / (1 + m["total_return"])))}
+
+
 def run(binary):
     catalog = call(binary, {"command": "catalog"})["strategies"]
     names = {strategy["id"]: strategy["name"] for strategy in catalog}
@@ -103,6 +120,7 @@ def run(binary):
         "search_random": [search(binary, {"synthetic": {"seed": seed, "bars": RANDOM_BARS}}, f"Random market {seed}")
                           for seed in range(1, RANDOM_MARKETS + 1)],
         "walk_forward": [walk_forward(binary, symbol) for symbol in STOCKS],
+        "portfolios": [portfolio(binary, strategy) for strategy in STRATEGIES + ["buy_hold"]],
     }
 
 
@@ -186,9 +204,30 @@ def walk_forward_table(study):
     return "\n".join(lines)
 
 
+def portfolio_table(study):
+    rows = study["portfolios"]
+    names = {strategy["id"]: strategy["name"] for strategy in study["strategies"]}
+    names["buy_hold"] = "Buy and hold"
+    lines = ["| Strategy | Sharpe ratio, portfolio | Median stock's | Annual return, portfolio | Median stock's | "
+             "Worst drawdown, portfolio | Median stock's | Correlation | Rebalancing cost |",
+             "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |"]
+    for row in rows:
+        bold = "**" if row["strategy"] == "buy_hold" else ""
+        lines.append(f"| {bold}{names[row['strategy']]}{bold} | {number(row['sharpe'])} | {number(row['stock_sharpe'])} | "
+                     f"{percent(row['cagr'], 1)} | {percent(row['stock_cagr'], 1)} | {percent(row['max_drawdown'])} | "
+                     f"{percent(row['stock_max_drawdown'])} | {number(row['correlation'])} | "
+                     f"{percent(row['rebalance_cost'], 1)} |")
+    sharper = sum(row["sharpe"] > row["stock_sharpe"] for row in rows)
+    shallower = sum(row["max_drawdown"] < row["stock_max_drawdown"] for row in rows)
+    lines += ["", f"From {rows[0]['from']} to {rows[0]['to']}, the years all seven stocks traded. The portfolio's "
+                  f"Sharpe ratio beat the median stock's for {sharper} of the {len(rows)}, and its worst drawdown was "
+                  f"shallower for {shallower} of them."]
+    return "\n".join(lines)
+
+
 def sections(study):
     return {"strategies": strategies_table(study), "search": search_table(study),
-            "walk_forward": walk_forward_table(study)}
+            "walk_forward": walk_forward_table(study), "portfolios": portfolio_table(study)}
 
 
 def fill(readme, tables):
@@ -219,7 +258,8 @@ def main():
     tables = sections(study)
     for title, table in (("Strategies against buying and holding, medians over the stocks", tables["strategies"]),
                          ("The search", search_table(study, every_random_market=True)),
-                         ("Walk-forward", tables["walk_forward"])):
+                         ("Walk-forward", tables["walk_forward"]),
+                         ("Portfolios", tables["portfolios"])):
         print(f"{title}\n\n{table}\n")
 
     paths = {ROOT / "docs" / "study.json": results}

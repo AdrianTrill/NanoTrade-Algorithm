@@ -1161,5 +1161,124 @@
    "hold_cagr": 0.0778,
    "efficiency": 0.5398
   }
+ ],
+ "portfolios": [
+  {
+   "strategy": "sma_cross",
+   "from": "1998-09-24",
+   "to": "2013-10-29",
+   "sharpe": 0.5439,
+   "stock_sharpe": 0.3081,
+   "cagr": 0.076,
+   "stock_cagr": 0.0459,
+   "max_drawdown": 0.3523,
+   "stock_max_drawdown": 0.7471,
+   "correlation": 0.1953,
+   "rebalance_cost": 0.0028
+  },
+  {
+   "strategy": "ema_cross",
+   "from": "1998-09-24",
+   "to": "2013-10-29",
+   "sharpe": 0.8118,
+   "stock_sharpe": 0.4447,
+   "cagr": 0.1223,
+   "stock_cagr": 0.0882,
+   "max_drawdown": 0.2318,
+   "stock_max_drawdown": 0.5932,
+   "correlation": 0.1921,
+   "rebalance_cost": 0.0042
+  },
+  {
+   "strategy": "macd",
+   "from": "1998-09-24",
+   "to": "2013-10-29",
+   "sharpe": 0.6455,
+   "stock_sharpe": 0.4559,
+   "cagr": 0.0994,
+   "stock_cagr": 0.0963,
+   "max_drawdown": 0.3772,
+   "stock_max_drawdown": 0.6989,
+   "correlation": 0.2318,
+   "rebalance_cost": 0.0028
+  },
+  {
+   "strategy": "momentum",
+   "from": "1998-09-24",
+   "to": "2013-10-29",
+   "sharpe": 0.6667,
+   "stock_sharpe": 0.3757,
+   "cagr": 0.0931,
+   "stock_cagr": 0.0542,
+   "max_drawdown": 0.4574,
+   "stock_max_drawdown": 0.5636,
+   "correlation": 0.2035,
+   "rebalance_cost": 0.003
+  },
+  {
+   "strategy": "donchian",
+   "from": "1998-09-24",
+   "to": "2013-10-29",
+   "sharpe": 0.4886,
+   "stock_sharpe": 0.2841,
+   "cagr": 0.05,
+   "stock_cagr": 0.0343,
+   "max_drawdown": 0.3382,
+   "stock_max_drawdown": 0.5336,
+   "correlation": 0.1415,
+   "rebalance_cost": 0.0013
+  },
+  {
+   "strategy": "rsi_reversion",
+   "from": "1998-09-24",
+   "to": "2013-10-29",
+   "sharpe": 0.3966,
+   "stock_sharpe": 0.1426,
+   "cagr": 0.0585,
+   "stock_cagr": 0.0027,
+   "max_drawdown": 0.5835,
+   "stock_max_drawdown": 0.6392,
+   "correlation": 0.2941,
+   "rebalance_cost": 0.0026
+  },
+  {
+   "strategy": "bollinger",
+   "from": "1998-09-24",
+   "to": "2013-10-29",
+   "sharpe": 0.2415,
+   "stock_sharpe": 0.1477,
+   "cagr": 0.0249,
+   "stock_cagr": 0.01,
+   "max_drawdown": 0.4681,
+   "stock_max_drawdown": 0.6335,
+   "correlation": 0.2526,
+   "rebalance_cost": 0.0009
+  },
+  {
+   "strategy": "rsi2_pullback",
+   "from": "1998-09-24",
+   "to": "2013-10-29",
+   "sharpe": 0.8265,
+   "stock_sharpe": 0.4122,
+   "cagr": 0.0488,
+   "stock_cagr": 0.0403,
+   "max_drawdown": 0.0752,
+   "stock_max_drawdown": 0.3144,
+   "correlation": 0.1215,
+   "rebalance_cost": 0.0002
+  },
+  {
+   "strategy": "buy_hold",
+   "from": "1998-09-24",
+   "to": "2013-10-29",
+   "sharpe": 0.6589,
+   "stock_sharpe": 0.4781,
+   "cagr": 0.1558,
+   "stock_cagr": 0.112,
+   "max_drawdown": 0.6824,
+   "stock_max_drawdown": 0.8245,
+   "correlation": 0.3508,
+   "rebalance_cost": 0.012
+  }
  ]
 }

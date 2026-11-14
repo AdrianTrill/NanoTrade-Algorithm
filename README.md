@@ -12,7 +12,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License: MIT"></a>
 </p>
 
-NanoTrade is a backtesting engine for trading strategies, in C++20 with no dependencies, and a lab that runs it in your browser. A strategy is a set of rules in a small language, such as `close > sma(close, 200) and rsi(close, 2) < 10`, read at each close and traded at the next open. Then NanoTrade asks the question a backtest usually skips: is the result real? It searches parameters on every core and measures how much of the winner's edge luck explains, with the deflated Sharpe ratio and the probability of backtest overfitting; it tests walk-forward; and it resamples the returns to show what luck could have done. One engine answers one JSON API three ways: from the command line, from its own HTTP server, and compiled to WebAssembly, where the [live lab](https://adriantrill.github.io/NanoTrade-Algorithm/) runs it on 52 years of bundled daily bars with no server at all. The same request gives the same bytes from all three.
+NanoTrade is a backtesting engine for trading strategies, in C++20 with no dependencies, and a lab that runs it in your browser. A strategy is a set of rules in a small language, such as `close > sma(close, 200) and rsi(close, 2) < 10`, read at each close and traded at the next open. Then NanoTrade asks the question a backtest usually skips: is the result real? It searches parameters on every core and measures how much of the winner's edge luck explains, with the deflated Sharpe ratio and the probability of backtest overfitting; it tests walk-forward; it resamples the returns to show what luck could have done; and it runs a strategy on a portfolio of markets at once, rebalanced between them, to show what diversification adds. One engine answers one JSON API three ways: from the command line, from its own HTTP server, and compiled to WebAssembly, where the [live lab](https://adriantrill.github.io/NanoTrade-Algorithm/) runs it on 52 years of bundled daily bars with no server at all. The same request gives the same bytes from all three.
 
 > [!NOTE]
 > NanoTrade is for research and learning, not investment advice. A backtest describes the past, and the lab is built to show how little of it a search can carry forward.
@@ -29,12 +29,13 @@ NanoTrade is a backtesting engine for trading strategies, in C++20 with no depen
 | **[Engine](#how-a-backtest-runs)** | Fills at the next open with slippage and commissions, stops within the bar, trailing stops, volatility targeting, shorts that pay to borrow, and more than thirty measures of the result | Cases worked by hand, and four properties under random signals on all 68,292 bundled bars |
 | **[Rule language](#the-rule-language)** | Strategies as rules: twenty functions, type checks before anything runs, and errors that point at the characters at fault | Every built-in strategy, bar by bar, against an independent version of it |
 | **[Is it real?](#is-it-real)** | Parameter sweeps on every core, the deflated Sharpe ratio, the probability of backtest overfitting, walk-forward tests, and Monte Carlo resampling | Known answers: a PBO near one half on pure noise, sweeps equal to separate backtests, and the same bits on one thread or eight |
+| **[Portfolios](#portfolios)** | One strategy on several markets at once: equal, fixed, or inverse-volatility weights, rebalanced on a schedule at the cost of what that trades, against the same markets held | One market at full weight is its own backtest to the bit, and the markets' contributions less the rebalancing costs are the portfolio's return |
 | **[The lab](#the-lab)** | A dashboard in the browser, laid out like Vercel's and set in Geist: a written verdict, the parameter map, a <kbd>⌘</kbd> <kbd>K</kbd> command menu, and every run in its link | Headless Chrome on every push, against WebAssembly and against the native server |
-| **[One API, three runtimes](#one-engine-three-runtimes)** | The same JSON API from the command line, a native HTTP server, and WebAssembly | 23 golden responses, byte for byte, with GCC, Clang, Apple Clang, MSVC, and in WebAssembly |
-| **[What it finds](#what-it-finds)** | A study: eight strategies against buying and holding, what a search finds on random markets, and walk-forward results | CI runs it again and requires every number |
+| **[One API, three runtimes](#one-engine-three-runtimes)** | The same JSON API from the command line, a native HTTP server, and WebAssembly | 26 golden responses, byte for byte, with GCC, Clang, Apple Clang, MSVC, and in WebAssembly |
+| **[What it finds](#what-it-finds)** | A study: eight strategies against buying and holding, what a search finds on random markets, walk-forward results, and what a portfolio adds | CI runs it again and requires every number |
 | **[Data](#data)** | 52 years of daily bars for seven US stocks, in the public domain | CI downloads them again and requires the same bytes |
 
-**Contents:** [Try it](#try-it) · [The lab](#the-lab) · [What it finds](#what-it-finds) · [Rule language](#the-rule-language) · [Strategies](#strategies) · [A backtest](#how-a-backtest-runs) · [C++](#use-it-from-c) · [Is it real?](#is-it-real) · [Three runtimes](#one-engine-three-runtimes) · [Performance](#performance) · [Command line](#command-line) · [API](#one-json-api) · [Server](#the-server) · [Data](#data) · [Layout](#repository-layout) · [Build](#build-and-run) · [Tests and CI](#tests-and-ci) · [Credits](#credits)
+**Contents:** [Try it](#try-it) · [The lab](#the-lab) · [What it finds](#what-it-finds) · [Rule language](#the-rule-language) · [Strategies](#strategies) · [A backtest](#how-a-backtest-runs) · [C++](#use-it-from-c) · [Is it real?](#is-it-real) · [Portfolios](#portfolios) · [Three runtimes](#one-engine-three-runtimes) · [Performance](#performance) · [Command line](#command-line) · [API](#one-json-api) · [Server](#the-server) · [Data](#data) · [Layout](#repository-layout) · [Build](#build-and-run) · [Tests and CI](#tests-and-ci) · [Credits](#credits)
 
 ## Try it
 
@@ -80,7 +81,7 @@ The lab is laid out like a Vercel dashboard and set in Vercel's typefaces, Geist
 
 ## What it finds
 
-[`tools/study.py`](tools/study.py) runs three experiments through the JSON API and writes the tables below, and [`docs/study.json`](docs/study.json) with every number behind them. CI runs it again on every push and fails if a single number would change. Every backtest is long only, over each stock's whole history, and pays 1 basis point of commission and 2 of slippage on every fill.
+[`tools/study.py`](tools/study.py) runs four experiments through the JSON API and writes the tables below, and [`docs/study.json`](docs/study.json) with every number behind them. CI runs it again on every push and fails if a single number would change. Every backtest is long only, over each stock's whole history, and pays 1 basis point of commission and 2 of slippage on every fill.
 
 **Against buying and holding.** Each built-in strategy with its default parameters, on each of the seven stocks; medians over the seven:
 
@@ -136,6 +137,26 @@ Medians: 0.87 in sample, 0.45 out of sample, and 0.46 for buying and holding; th
 <!-- /study:walk_forward -->
 
 The windows that looked best on the past kept about half their Sharpe ratio on the year after, which leaves the crossover close to holding the stock. That is the gap a backtest optimized on its own history hides, and the gap the lab is built to show.
+
+**Portfolios.** Each strategy on all seven stocks at once, equally weighted and rebalanced monthly (see [Portfolios](#portfolios)), against the median stock alone over the same years:
+
+<!-- study:portfolios -->
+| Strategy | Sharpe ratio, portfolio | Median stock's | Annual return, portfolio | Median stock's | Worst drawdown, portfolio | Median stock's | Correlation | Rebalancing cost |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| SMA crossover | 0.54 | 0.31 | 7.6% | 4.6% | 35% | 75% | 0.20 | 0.3% |
+| EMA crossover | 0.81 | 0.44 | 12.2% | 8.8% | 23% | 59% | 0.19 | 0.4% |
+| MACD | 0.65 | 0.46 | 9.9% | 9.6% | 38% | 70% | 0.23 | 0.3% |
+| Time-series momentum | 0.67 | 0.38 | 9.3% | 5.4% | 46% | 56% | 0.20 | 0.3% |
+| Donchian breakout | 0.49 | 0.28 | 5.0% | 3.4% | 34% | 53% | 0.14 | 0.1% |
+| RSI reversion | 0.40 | 0.14 | 5.9% | 0.3% | 58% | 64% | 0.29 | 0.3% |
+| Bollinger reversion | 0.24 | 0.15 | 2.5% | 1.0% | 47% | 63% | 0.25 | 0.1% |
+| RSI(2) pullback | 0.83 | 0.41 | 4.9% | 4.0% | 8% | 31% | 0.12 | 0.0% |
+| **Buy and hold** | 0.66 | 0.48 | 15.6% | 11.2% | 68% | 82% | 0.35 | 1.2% |
+
+From 1998-09-24 to 2013-10-29, the years all seven stocks traded. The portfolio's Sharpe ratio beat the median stock's for 9 of the 9, and its worst drawdown was shallower for 9 of them.
+<!-- /study:portfolios -->
+
+Every strategy did better on the seven stocks together than on the median stock alone: a higher Sharpe ratio for all nine, a higher annual return too, and a shallower worst drawdown, less than half the median stock's for both crossovers and the RSI(2) pullback. Under each strategy the stocks' daily returns had an average correlation between 0.12 and 0.29, so their bad years seldom came together; held, always in the market, they moved together most, at 0.35. Rebalancing every month for fifteen years cost less than half a percent of the starting capital for every strategy, and 1.2% for buying and holding: a sleeve's cash moves for free, and only what it holds is traded.
 
 ## The rule language
 
@@ -236,6 +257,55 @@ const nanotrade::SweepResult search = nanotrade::run_sweep(bars, cache, crossove
 // search.overfit.deflated_sharpe, search.overfit.pbo, and every trial's metrics in search.trials
 ```
 
+## Portfolios
+
+`portfolio` runs one strategy on several markets at once. Each market trades in a sleeve of the capital exactly as a backtest on that market alone would: the sleeve's value follows that backtest's equity, scaled to the capital it holds. Only the dates every market traded count.
+
+- **Weights** are equal, fixed and scaled to add up to one, or in inverse proportion to each market's volatility over the last 63 days (or another window), equal until there's history to measure.
+- **Rebalancing** at the last close of each month, quarter, or year, or never, sets the sleeves back to their weights, and pays the commission and slippage on what that buys and sells in each market. A sleeve's cash moves for free: only the part of it that's invested trades.
+- **The benchmark** is the same markets bought and held, weighted and rebalanced the same way, so the comparison isolates what the strategy did.
+- **The result** has the portfolio's measures, each market's weight, final weight, contribution, and measures alone, the correlations of the markets' daily returns, and each market's weight at each close.
+
+The tests hold it to its books: one market at full weight is its own backtest to the bit, measures and all; without rebalancing the sleeves add up to the portfolio; rebalancing costs exactly its rate on what it moves; and the markets' contributions, less what rebalancing cost, are the portfolio's return to twelve digits.
+
+```bash
+nanotrade portfolio --markets AAPL,GE,F --weights 2,1,1 --rebalance quarterly --from 2000-01-01 --commission 1 --slippage 2
+```
+
+```text
+Portfolio of AAPL, GE, F, 2000-01-03 to 2013-12-31, 3,521 shared bars
+SMA crossover: fast 20, slow 50; fixed weights, rebalanced quarterly
+
+  market   weight   final     CAGR   Sharpe   max drawdown   trades   contribution
+  AAPL      50.0%   51.4%    18.1%     0.66          78.2%       35         273.1%
+  GE        25.0%   26.1%    -3.2%    -0.09          57.4%       43          11.1%
+  F         25.0%   22.5%     0.6%     0.17          84.3%       39          79.9%
+
+                     Portfolio          Held
+Final equity           463,901       712,905
+Total return            363.9%        612.9%
+CAGR                     11.6%         15.1%
+Volatility               21.8%         32.5%
+Sharpe                    0.62          0.60
+Sortino                   0.87          0.86
+Max drawdown             54.1%         70.1%
+Calmar                    0.21          0.21
+Exposure                 84.7%        100.0%
+Trades                     117
+Win rate                 45.3%
+Profit factor             1.88
+Avg trade                 3.9%
+P(Sharpe > 0)            98.8%         98.6%
+
+Rebalanced 55 times, trading 491,286 for 147 in costs
+
+Correlations of the markets' daily returns
+           AAPL     GE      F
+  AAPL     1.00   0.20   0.14
+  GE       0.20   1.00   0.24
+  F        0.14   0.24   1.00
+```
+
 ## One engine, three runtimes
 
 ```mermaid
@@ -243,15 +313,15 @@ flowchart LR
     cli["nanotrade run, sweep, ...<br/>the command line"] --> api
     server["nanotrade serve<br/>HTTP/1.1, a pool of threads"] --> api
     wasm["nanotrade.wasm<br/>in two Web Workers"] --> api
-    api["nanotrade::api::handle<br/>JSON in, JSON out"] --> engine["The engine<br/>indicators, rules, fills,<br/>measures, research"]
+    api["nanotrade::api::handle<br/>JSON in, JSON out"] --> engine["The engine<br/>indicators, rules, fills,<br/>measures, research, portfolios"]
     lab["The lab<br/>HTML, CSS, JavaScript modules"] -- "on GitHub Pages" --> wasm
     lab -- "from nanotrade serve" --> server
     data[("data/<br/>seven stocks, 1962 to 2013")] --> engine
 ```
 
-The lab never knows which engine it has. It imports its own `runtime.js`, which says WebAssembly on a static site, and which `nanotrade serve` answers itself, saying native. In the browser, the engine runs in two Web Workers: one answers the interactive backtests and the other runs searches, walk-forward tests, and resampling, so dragging a slider never waits behind a long job. The WebAssembly build is 0.49 MB (0.20 MB compressed), with C++ exceptions carried by the browser's native WebAssembly exception handling.
+The lab never knows which engine it has. It imports its own `runtime.js`, which says WebAssembly on a static site, and which `nanotrade serve` answers itself, saying native. In the browser, the engine runs in two Web Workers: one answers the interactive backtests and the other runs searches, walk-forward tests, resampling, and portfolios, so dragging a slider never waits behind a long job. The WebAssembly build is 0.49 MB (0.20 MB compressed), with C++ exceptions carried by the browser's native WebAssembly exception handling.
 
-**The same request gives the same bytes everywhere.** The engine computes exp, log, and the normal distribution itself instead of trusting each platform's math library, compiles without floating-point contraction, draws random numbers with its own generator and distributions, and writes each number as the shortest decimal that reads back exactly. [`tests/golden/`](tests/golden) holds 23 requests with their responses, and CI requires every one byte for byte with GCC, Clang, Apple Clang, and MSVC, and in WebAssembly in Node.
+**The same request gives the same bytes everywhere.** The engine computes exp, log, and the normal distribution itself instead of trusting each platform's math library, compiles without floating-point contraction, draws random numbers with its own generator and distributions, and writes each number as the shortest decimal that reads back exactly. [`tests/golden/`](tests/golden) holds 26 requests with their responses, and CI requires every one byte for byte with GCC, Clang, Apple Clang, and MSVC, and in WebAssembly in Node.
 
 ## Performance
 
@@ -275,6 +345,7 @@ nanotrade run --data F --long "rsi(close, 2) < 10 and close > sma(close, 200)" -
 nanotrade sweep --data GE --x fast=10:200:10 --y slow=20:400:20
 nanotrade walkforward --data CAT --strategy rsi_reversion --x period=5:25:5 --is-years 5 --oos-years 2
 nanotrade montecarlo --data BA --strategy momentum --paths 2000
+nanotrade portfolio --markets AAPL,BA,CAT,F,GE --weighting inverse-volatility --rebalance monthly
 nanotrade serve                   # the API and the lab at http://127.0.0.1:8080
 ```
 
@@ -314,6 +385,7 @@ The command line, the server, and the browser all send the same JSON requests to
 | `sweep` | Every combination of one or two parameters, the ten best, and the overfitting measures |
 | `walkforward` | A walk-forward test, window by window, and its chained equity |
 | `montecarlo` | A backtest's returns resampled into bands and distributions |
+| `portfolio` | One strategy on several markets, weighted and rebalanced, against the same markets held: its measures, each market's, and their correlations |
 
 ```json
 {"command": "backtest", "data": "AAPL", "range": {"from": "2003-01-01"},
@@ -329,7 +401,7 @@ A request is checked before anything runs. An error names the field at fault, su
 {"ok": false, "error": {"message": "unknown field config.comission_bps; did you mean commission_bps?", "field": "config.comission_bps"}}
 ```
 
-**The same request gives the same bytes everywhere.** The engine computes exp, log, and the normal quantile itself instead of trusting each platform's math library, compiles without floating-point contraction, draws random numbers with its own generator and distributions, and writes each number as the shortest decimal that reads back exactly. [`tests/golden/`](tests/golden) holds 23 requests with their responses, and CI requires every one byte for byte with GCC, Clang, Apple Clang, and MSVC.
+**The same request gives the same bytes everywhere.** The engine computes exp, log, and the normal quantile itself instead of trusting each platform's math library, compiles without floating-point contraction, draws random numbers with its own generator and distributions, and writes each number as the shortest decimal that reads back exactly. [`tests/golden/`](tests/golden) holds 26 requests with their responses, and CI requires every one byte for byte with GCC, Clang, Apple Clang, and MSVC.
 
 ## The server
 
@@ -356,6 +428,7 @@ The loader reads the CSV files of Yahoo, Stooq, Nasdaq.com, and Quandl: it finds
 │   ├── engine.cpp              # fills, costs, stops, and sizing
 │   ├── metrics.cpp             # the measures, drawdowns, and calendar returns
 │   ├── research.cpp            # sweeps, deflated Sharpe, PBO, walk-forward, Monte Carlo
+│   ├── portfolio.cpp           # portfolios: sleeves, weights, rebalancing, and their costs
 │   ├── synthetic.cpp           # random markets
 │   ├── series.cpp              # the CSV loader
 │   ├── api.cpp                 # the JSON API
@@ -398,7 +471,7 @@ node web/serve.mjs build-wasm/site 8000          # served as GitHub Pages serves
 ## Tests and CI
 
 ```bash
-ctest --test-dir build --output-on-failure                   # 291 tests in 11 suites, the golden responses, and the command line
+ctest --test-dir build --output-on-failure                   # 301 tests in 12 suites, the golden responses, and the command line
 npm ci --prefix web
 node web/check.mjs build-wasm/site tests/golden               # the golden responses in WebAssembly
 node web/ui-check.mjs build-wasm/site                         # the lab in headless Chrome
@@ -419,7 +492,7 @@ python3 tools/study.py build/nanotrade --check                # the README's stu
 
 ## Next steps
 
-- Portfolios: several markets at once, with weights and rebalancing between them, instead of one market at a time.
+- A strategy of its own for each market in a portfolio, and rebalancing at the next open rather than at the close.
 - Orders beyond the next open: limit and stop entries, and intraday bars to fill them on.
 - Data without survivorship bias: a universe that includes the companies that failed.
 

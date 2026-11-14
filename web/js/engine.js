@@ -1,7 +1,7 @@
 import { runtime } from './runtime.js';
 
 // Where the engine runs. In the page, as WebAssembly in two workers: one answers the interactive backtests, the other
-// runs sweeps, walk-forward tests, and resampling, so dragging a slider never waits behind a long job. Or on the native
+// runs sweeps, walk-forward tests, resampling, and portfolios, so dragging a slider never waits behind a long job. Or on the native
 // server, when `nanotrade serve` serves the page. Both answer the same JSON requests with the same bytes.
 
 export class Superseded extends Error {

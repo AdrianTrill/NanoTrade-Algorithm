@@ -1598,35 +1598,46 @@ button.legend-item:hover {
   vertical-align: middle;
 }
 
-.figure.skeleton span {
-  display: block;
-  width: 55%;
-  height: 12px;
+/* Placeholders set in the same type as the text they stand for, so they wrap as it will and nothing moves when it
+   arrives. */
+.skeleton-text {
   border-radius: 4px;
-  background: linear-gradient(100deg, var(--fill) 40%, var(--fill-shine) 50%, var(--fill) 60%);
-  background-size: 250% 100%;
+  background: linear-gradient(100deg, var(--fill) 40%, var(--fill-shine) 50%, var(--fill) 60%) 0 0 / 250% 100%;
+  color: transparent;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
   animation: shimmer 1.4s linear infinite;
+  user-select: none;
 }
 
-.figure.skeleton span:nth-child(2) {
-  width: 72%;
-  height: 28px;
-  margin: 2px 0 4px;
-  border-radius: 6px;
+.figure.skeleton .bars span {
+  width: 80%;
+  background: var(--fill);
 }
 
-.figure.skeleton span:nth-child(3) {
-  width: 88%;
+.figure.skeleton .bars span + span {
+  width: 100%;
+}
+
+.legend-item[aria-hidden] {
+  color: var(--fill);
+}
+
+.skeleton-chip,
+.skeleton-chip:hover {
+  border-color: transparent;
+  background: var(--fill);
+  color: transparent;
 }
 
 .booting .params:empty {
   display: block;
-  min-height: 96px;
+  min-height: 114px;
   background:
-    linear-gradient(var(--fill) 0 0) 0 4px / 45% 12px no-repeat,
-    linear-gradient(var(--fill) 0 0) 0 30px / 100% 4px no-repeat,
-    linear-gradient(var(--fill) 0 0) 0 56px / 38% 12px no-repeat,
-    linear-gradient(var(--fill) 0 0) 0 82px / 100% 4px no-repeat;
+    linear-gradient(var(--fill) 0 0) 0 7px / 45% 12px no-repeat,
+    linear-gradient(var(--fill) 0 0) 0 38px / 100% 4px no-repeat,
+    linear-gradient(var(--fill) 0 0) 0 71px / 38% 12px no-repeat,
+    linear-gradient(var(--fill) 0 0) 0 102px / 100% 4px no-repeat;
 }
 
 @keyframes shimmer {

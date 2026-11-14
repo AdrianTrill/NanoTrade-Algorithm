@@ -114,7 +114,7 @@
               <button class="square-button" id="upload" title="Open a CSV of daily bars (O)" aria-label="Open a CSV file"><svg class="icon"><use href="#i-upload"/></svg></button>
               <input type="file" id="file" accept=".csv,text/csv,.txt" hidden>
             </div>
-            <p class="note" id="dataset-note"></p>
+            <p class="note" id="dataset-note"><span class="skeleton-text" aria-hidden="true">8,336 daily bars, Dec 12, 1980 to Dec 31, 2013. Includes the 52% fall of 2000-09-29, after a profit warning: a real move, not an error.</span></p>
           </div>
           <div class="field" id="seed-field" hidden>
             <label class="field-label" for="seed">Seed</label>
@@ -130,7 +130,7 @@
               <span class="range-dash">to</span>
               <input type="date" id="to" aria-label="To">
             </div>
-            <div class="chips" id="presets"></div>
+            <div class="chips" id="presets"><span class="chip skeleton-chip" aria-hidden="true">All</span><span class="chip skeleton-chip" aria-hidden="true">Since 1990</span><span class="chip skeleton-chip" aria-hidden="true">Since 2000</span><span class="chip skeleton-chip" aria-hidden="true">2007–2009</span><span class="chip skeleton-chip" aria-hidden="true">Last 5 years</span></div>
           </div>
         </section>
 
@@ -138,10 +138,10 @@
           <header class="spec-head"><h2>Strategy</h2><button class="text-button small" id="reference-open" title="The rule language (F)"><svg class="icon"><use href="#i-function"/></svg><span>Functions</span></button></header>
           <div class="field">
             <select id="strategy" aria-label="Strategy"><option>Loading…</option></select>
-            <p class="note" id="strategy-summary"></p>
+            <p class="note" id="strategy-summary"><span class="skeleton-text" aria-hidden="true">Long while the fast simple moving average is above the slow one.</span></p>
           </div>
           <div class="params" id="params"></div>
-          <div class="rules" id="rules"></div>
+          <div class="rules" id="rules"><div class="rule" aria-hidden="true"><span class="rule-label"><span class="skeleton-text" aria-hidden="true">Go long when</span></span><div class="rule-code"><span class="skeleton-text" aria-hidden="true">sma(close, $fast) &gt; sma(close, $slow)</span></div></div></div>
           <button class="text-button small edit-rules" id="edit-rules" title="Edit these rules as a custom strategy (E)"><svg class="icon"><use href="#i-edit"/></svg><span>Edit these rules</span></button>
         </section>
 
@@ -167,17 +167,17 @@
       <main class="report" id="main">
         <section class="view-panel" id="panel-backtest" role="tabpanel" aria-labelledby="tab-backtest" data-panel="backtest">
           <header class="lede">
-            <p class="kicker" id="kicker">Backtest</p>
-            <h1 id="headline">Starting the engine</h1>
-            <p class="deck" id="deck">The backtesting engine, compiled to WebAssembly, and the market's daily bars are on their way: about 1 MB on a first visit, which your browser then keeps.</p>
-            <p class="dateline" id="dateline"></p>
+            <p class="kicker" id="kicker">Starting the engine · about 1 MB on a first visit</p>
+            <h1 id="headline"><span class="visually-hidden">Loading the backtest</span><span class="skeleton-text" aria-hidden="true">SMA crossover on Apple, 1990–2013</span></h1>
+            <p class="deck" id="deck"><span class="skeleton-text" aria-hidden="true">It turned $100,000 into $2.65 million; buying and holding ended at $6.69 million. Its Sharpe ratio was 0.57, against 0.61, and its worst drawdown 78%, against 82%. It held a position 59% of the time, over 62 trades, and won 52% of them.</span></p>
+            <p class="dateline" id="dateline"><span class="skeleton-text" aria-hidden="true">AAPL · SMA crossover: fast 20, slow 50 · 6,049 bars, Jan 2, 1990 to Dec 31, 2013 · computed in 9.9 ms in this tab</span></p>
           </header>
-          <div class="figures" id="kpis"><div class="figure skeleton" aria-hidden="true"><span></span><span></span><span></span></div><div class="figure skeleton" aria-hidden="true"><span></span><span></span><span></span></div><div class="figure skeleton" aria-hidden="true"><span></span><span></span><span></span></div><div class="figure skeleton" aria-hidden="true"><span></span><span></span><span></span></div><div class="figure skeleton" aria-hidden="true"><span></span><span></span><span></span></div><div class="figure skeleton" aria-hidden="true"><span></span><span></span><span></span></div></div>
+          <div class="figures" id="kpis"><div class="figure skeleton" aria-hidden="true"><span class="label"><span class="skeleton-text" aria-hidden="true">Total return</span></span><span class="value"><span class="skeleton-text" aria-hidden="true">2,548%</span></span><span class="bars"><span></span><span></span></span><span class="versus"><span class="skeleton-text" aria-hidden="true">Buy and hold 6,593%</span></span></div><div class="figure skeleton" aria-hidden="true"><span class="label"><span class="skeleton-text" aria-hidden="true">Annual return</span></span><span class="value"><span class="skeleton-text" aria-hidden="true">14.6%</span></span><span class="bars"><span></span><span></span></span><span class="versus"><span class="skeleton-text" aria-hidden="true">Buy and hold 19.1%</span></span></div><div class="figure skeleton" aria-hidden="true"><span class="label"><span class="skeleton-text" aria-hidden="true">Sharpe ratio</span></span><span class="value"><span class="skeleton-text" aria-hidden="true">0.57</span></span><span class="bars"><span></span><span></span></span><span class="versus"><span class="skeleton-text" aria-hidden="true">Buy and hold 0.61</span></span></div><div class="figure skeleton" aria-hidden="true"><span class="label"><span class="skeleton-text" aria-hidden="true">Worst drawdown</span></span><span class="value"><span class="skeleton-text" aria-hidden="true">&minus;78.2%</span></span><span class="bars"><span></span><span></span></span><span class="versus"><span class="skeleton-text" aria-hidden="true">Buy and hold &minus;82.0%</span></span></div><div class="figure skeleton" aria-hidden="true"><span class="label"><span class="skeleton-text" aria-hidden="true">Trades</span></span><span class="value"><span class="skeleton-text" aria-hidden="true">62</span></span><span class="versus"><span class="skeleton-text" aria-hidden="true">52% of them won</span></span></div><div class="figure skeleton" aria-hidden="true"><span class="label"><span class="skeleton-text" aria-hidden="true">In the market</span></span><span class="value"><span class="skeleton-text" aria-hidden="true">59%</span></span><span class="versus"><span class="skeleton-text" aria-hidden="true">5&times; turnover a year</span></span></div></div>
           <figure class="exhibit">
             <figcaption class="exhibit-head">
               <div class="exhibit-text">
                 <h2 class="exhibit-title">Price and signals, position, equity, and drawdown</h2>
-                <div class="legend" id="legend"></div>
+                <div class="legend" id="legend"><span class="legend-item" aria-hidden="true"><span class="swatch "></span><span class="skeleton-text" aria-hidden="true">Close</span></span><span class="legend-item" aria-hidden="true"><span class="swatch thick"></span><span class="skeleton-text" aria-hidden="true">SMA(20)</span></span><span class="legend-item" aria-hidden="true"><span class="swatch thick"></span><span class="skeleton-text" aria-hidden="true">SMA(50)</span></span><span class="legend-item" aria-hidden="true"><span class="swatch triangle"></span><span class="skeleton-text" aria-hidden="true">Entry</span></span><span class="legend-item" aria-hidden="true"><span class="swatch ring"></span><span class="skeleton-text" aria-hidden="true">Exit</span></span><span class="legend-item" aria-hidden="true"><span class="swatch thick"></span><span class="skeleton-text" aria-hidden="true">Strategy</span></span><span class="legend-item" aria-hidden="true"><span class="swatch thick"></span><span class="skeleton-text" aria-hidden="true">Buy and hold</span></span></div>
               </div>
               <div class="chart-tools">
                 <button class="toggle-text" id="log" aria-pressed="true" title="Logarithmic price and equity (L)">Log scale</button>

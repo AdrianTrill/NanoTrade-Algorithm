@@ -453,7 +453,7 @@ async function main() {
   const drawer = new Drawer();
   readPalette();
   fromQuery(location.search);
-  if (runtime === 'native') $('#deck').textContent = 'Connecting to the native engine that serves this page.';
+  if (runtime === 'native') $('#kicker').textContent = 'Connecting to the native engine';
   try {
     const manifest = await fetch('data/manifest.json').then((response) => {
       if (!response.ok) throw new Error(`data/manifest.json: ${response.status}`);
@@ -475,6 +475,8 @@ async function main() {
     document.body.classList.remove('booting');
     $('#chart').parentElement.classList.remove('loading');
     $('#kpis').replaceChildren();
+    for (const id of ['dateline', 'legend', 'dataset-note', 'presets', 'strategy-summary', 'rules']) $(`#${id}`).replaceChildren();
+    $('#kicker').textContent = 'Backtest';
     for (const select of [$('#dataset'), $('#strategy')]) select.replaceChildren(element('option', {}, 'Unavailable'));
     $('#headline').textContent = 'The engine didn\'t start';
     $('#deck').replaceChildren(`${reason}. Reloading usually fixes this; if it doesn't, the browser may be blocking WebAssembly or the page's data. `,

@@ -68,6 +68,11 @@ async function open(query = '', { width = 1440, height = 900, mobile = false, th
   });
   await page.evaluateOnNewDocument((choice) => {
     if (location.protocol.startsWith('http')) localStorage.setItem('nanotrade-theme', choice);
+    // The layout shift as the page loads: what moves without being asked to.
+    window.layoutShift = 0;
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) if (!entry.hadRecentInput) window.layoutShift += entry.value;
+    }).observe({ type: 'layout-shift', buffered: true });
   }, theme);
   await page.setViewport({ width, height, deviceScaleFactor: 1, isMobile: mobile, hasTouch: mobile });
   await page.goto(`${url}${query}`, { waitUntil: 'load' });
@@ -143,6 +148,8 @@ try {
   check(native ? /native/i.test(runtime) : /WebAssembly/.test(runtime), `it runs ${native ? 'on the native server' : 'in WebAssembly'}: "${runtime}"`);
   check(/SMA crossover on Apple/.test(await text(page, '#headline')), 'the default backtest is the SMA crossover on Apple');
   check((await count(page, '#kpis .figure')) === 6, 'six headline figures');
+  const shift = await page.evaluate(() => window.layoutShift);
+  check(shift < 0.02, `nothing moves as the first result replaces its placeholders (layout shift ${shift.toFixed(3)})`);
   check((await count(page, '#trades tbody tr')) > 10, 'the trade log lists the trades');
   const inked = await page.$eval('#chart', (canvas) => {
     const context = canvas.getContext('2d');
@@ -310,6 +317,8 @@ try {
   page = await open('', { width: 390, height: 844, mobile: true });
   check(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'nothing overflows a phone\'s screen');
   check(await page.$eval('#headline', (node) => node.getBoundingClientRect().top < innerHeight / 3), 'the result comes first on a phone');
+  const phoneShift = await page.evaluate(() => window.layoutShift);
+  check(phoneShift < 0.02, `and nothing moves as it arrives (layout shift ${phoneShift.toFixed(3)})`);
   check(await page.$eval('#spec', (node) => getComputedStyle(node).visibility === 'hidden'), 'the settings wait until they\'re asked for');
   await shoot(page, 'phone');
   await page.tap('#spec-toggle');

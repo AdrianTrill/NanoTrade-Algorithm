@@ -198,6 +198,39 @@ html {
   backdrop-filter: blur(8px);
 }
 
+/* A line that sweeps under the masthead while the engine starts or works, shown only when the work takes a moment. */
+.masthead::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent) 0 0 / 35% 100% no-repeat;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.booting .masthead::after,
+.working .masthead::after {
+  animation: progress-sweep 1.2s ease-in-out infinite, progress-show 0.2s ease 0.25s forwards;
+}
+
+@keyframes progress-sweep {
+  from {
+    background-position: -40% 0;
+  }
+  to {
+    background-position: 140% 0;
+  }
+}
+
+@keyframes progress-show {
+  to {
+    opacity: 1;
+  }
+}
+
 .masthead-inner {
   width: 100%;
   max-width: var(--page);
@@ -1224,6 +1257,42 @@ button.legend-item:hover {
   background-size: 250% 100%;
   animation: shimmer 1.2s linear infinite;
   pointer-events: none;
+}
+
+/* While the engine starts: placeholders where the figures and the settings will be. */
+.deck .button {
+  height: 30px;
+  margin-left: 4px;
+  vertical-align: 2px;
+}
+
+.figure.skeleton span {
+  display: block;
+  width: 55%;
+  height: 10px;
+  background: linear-gradient(100deg, var(--surface-sunken) 40%, var(--surface-raised) 50%, var(--surface-sunken) 60%);
+  background-size: 250% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+.figure.skeleton span:nth-child(2) {
+  width: 72%;
+  height: 28px;
+  margin: 3px 0 5px;
+}
+
+.figure.skeleton span:nth-child(3) {
+  width: 88%;
+}
+
+.booting .params:empty {
+  display: block;
+  min-height: 96px;
+  background:
+    linear-gradient(var(--surface-sunken) 0 0) 0 4px / 45% 10px no-repeat,
+    linear-gradient(var(--surface-sunken) 0 0) 0 28px / 100% 3px no-repeat,
+    linear-gradient(var(--surface-sunken) 0 0) 0 56px / 38% 10px no-repeat,
+    linear-gradient(var(--surface-sunken) 0 0) 0 80px / 100% 3px no-repeat;
 }
 
 @keyframes shimmer {

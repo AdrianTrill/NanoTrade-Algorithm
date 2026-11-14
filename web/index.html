@@ -22,7 +22,7 @@
   </script>
   <script type="module" src="js/app.js"></script>
 </head>
-<body>
+<body class="booting">
   <svg class="sprite" aria-hidden="true">
     <symbol id="i-mark" viewBox="0 0 32 32">
       <rect width="32" height="32" fill="currentColor"/>
@@ -83,7 +83,7 @@
           <div class="field">
             <label class="field-label" for="dataset">Market</label>
             <div class="select-row">
-              <select id="dataset" class="serif-select"></select>
+              <select id="dataset" class="serif-select"><option>Loading…</option></select>
               <button class="square-button" id="upload" title="Open a CSV of daily bars (O)" aria-label="Open a CSV file"><svg class="icon"><use href="#i-upload"/></svg></button>
               <input type="file" id="file" accept=".csv,text/csv,.txt" hidden>
             </div>
@@ -110,7 +110,7 @@
         <section class="spec-section">
           <header class="spec-head"><h2><span class="num">2</span>Strategy</h2><button class="text-button small" id="reference-open" title="The rule language (F)"><svg class="icon"><use href="#i-function"/></svg><span>Functions</span></button></header>
           <div class="field">
-            <select id="strategy" class="serif-select" aria-label="Strategy"></select>
+            <select id="strategy" class="serif-select" aria-label="Strategy"><option>Loading…</option></select>
             <p class="note" id="strategy-summary"></p>
           </div>
           <div class="params" id="params"></div>
@@ -141,11 +141,11 @@
         <section class="view-panel" data-panel="backtest">
           <header class="lede">
             <p class="kicker" id="kicker">Backtest</p>
-            <h1 id="headline">Loading the engine</h1>
-            <p class="deck" id="deck"></p>
+            <h1 id="headline">Starting the engine</h1>
+            <p class="deck" id="deck">The backtesting engine, compiled to WebAssembly, and the market's daily bars are on their way: about 1 MB on a first visit, which your browser then keeps.</p>
             <p class="dateline" id="dateline"></p>
           </header>
-          <div class="figures" id="kpis"></div>
+          <div class="figures" id="kpis"><div class="figure skeleton" aria-hidden="true"><span></span><span></span><span></span></div><div class="figure skeleton" aria-hidden="true"><span></span><span></span><span></span></div><div class="figure skeleton" aria-hidden="true"><span></span><span></span><span></span></div><div class="figure skeleton" aria-hidden="true"><span></span><span></span><span></span></div><div class="figure skeleton" aria-hidden="true"><span></span><span></span><span></span></div><div class="figure skeleton" aria-hidden="true"><span></span><span></span><span></span></div></div>
           <figure class="exhibit">
             <figcaption class="exhibit-head">
               <div class="exhibit-text">
@@ -159,7 +159,7 @@
                 <button class="toggle-text" id="zoom-reset" title="Show the whole range (R)">Reset view</button>
               </div>
             </figcaption>
-            <div class="chart-wrap main-chart">
+            <div class="chart-wrap main-chart loading">
               <canvas id="chart" aria-label="Price with indicators and trades, the position held, the strategy's equity against buy and hold, and drawdowns"></canvas>
               <div class="tooltip" id="tooltip" hidden></div>
             </div>

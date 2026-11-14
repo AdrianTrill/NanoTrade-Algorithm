@@ -112,6 +112,25 @@ async function open_view(page, view, counter) {
 }
 
 try {
+  // While the engine starts, placeholders stand in for the figures and the chart; a failed start says so.
+  const held = await browser.newPage();
+  await held.setRequestInterception(true);
+  held.on('request', (request) => (request.url().endsWith('manifest.json') ? setTimeout(() => request.continue(), 1500) : request.continue()));
+  await held.goto(url, { waitUntil: 'domcontentloaded' });
+  check(await held.evaluate(() => document.body.classList.contains('booting') && document.querySelectorAll('#kpis .skeleton').length === 6),
+    'placeholders stand in while the engine starts');
+  await held.waitForFunction(() => document.body.dataset.ready === 'true', { timeout: 90000 });
+  check(await held.evaluate(() => !document.body.classList.contains('booting') && !document.querySelector('#kpis .skeleton')),
+    'and give way to the backtest');
+  await held.close();
+  const broken = await browser.newPage();
+  await broken.setRequestInterception(true);
+  broken.on('request', (request) => (request.url().endsWith('manifest.json') ? request.abort() : request.continue()));
+  await broken.goto(url, { waitUntil: 'load' });
+  await broken.waitForFunction(() => document.body.dataset.error, { timeout: 30000 });
+  check(/didn't start/.test(await text(broken, '#headline')) && Boolean(await broken.$('#deck .button')), 'a failed start says so, with a way to retry');
+  await broken.close();
+
   // The default backtest.
   let page = await open();
   check(!(await page.evaluate(() => document.body.dataset.error)), 'the engine starts');

@@ -7,6 +7,7 @@ import { highlight } from './editor.js';
 import * as format from './format.js';
 import { Drawer, trackMasthead } from './layout.js';
 import { readPalette } from './palette.js';
+import { runtime } from './runtime.js';
 import { MonteCarloView, OptimizeView, WalkForwardView } from './research.js';
 import { startShortcuts } from './shortcuts.js';
 import { dataSpec, fromQuery, request, saveQuery, state } from './state.js';
@@ -41,6 +42,7 @@ class App {
     this.scheduled = false;
     this.backtests = 0;
     this.backtestOk = false;
+    this.pending = 0;  // backtests in flight, for the line under the masthead
   }
 
   start() {
@@ -109,6 +111,7 @@ class App {
     });
     this.refreshResearch();
     this.showView(VIEWS.includes(state.view) ? state.view : 'backtest');
+    document.body.classList.remove('booting');
     this.runBacktest();
   }
 
@@ -190,6 +193,17 @@ class App {
   }
 
   async runBacktest() {
+    this.pending += 1;
+    document.documentElement.classList.add('working');
+    try {
+      await this.backtestNow();
+    } finally {
+      this.pending -= 1;
+      document.documentElement.classList.toggle('working', this.pending > 0);
+    }
+  }
+
+  async backtestNow() {
     this.backtest.setLoading(true);
     $('#runtime').classList.add('busy');
     let response;
@@ -362,6 +376,7 @@ async function main() {
   trackMasthead();
   readPalette();
   fromQuery(location.search);
+  if (runtime === 'native') $('#deck').textContent = 'Connecting to the native engine that serves this page.';
   try {
     const manifest = await fetch('data/manifest.json').then((response) => {
       if (!response.ok) throw new Error(`data/manifest.json: ${response.status}`);
@@ -377,8 +392,17 @@ async function main() {
     window.nanotrade = app;  // for the page's checks
     app.start();
   } catch (error) {
-    setEngineStatus(`The engine failed to start: ${error.message}`, 'failed');
-    toast('The engine failed to start', error.message, 'error', 60000);
+    // Emscripten wraps a failed download as "Aborted(the reason). Build with -sASSERTIONS for more info."
+    const reason = error.message.replace(/^Aborted\(([\s\S]*)\)\. Build with -sASSERTIONS[\s\S]*$/, '$1').replace(/[.\s]+$/, '');
+    document.body.classList.remove('booting');
+    $('#chart').parentElement.classList.remove('loading');
+    $('#kpis').replaceChildren();
+    for (const select of [$('#dataset'), $('#strategy')]) select.replaceChildren(element('option', {}, 'Unavailable'));
+    $('#headline').textContent = 'The engine didn\'t start';
+    $('#deck').replaceChildren(`${reason}. Reloading usually fixes this; if it doesn't, the browser may be blocking WebAssembly or the page's data. `,
+      element('button', { class: 'button', onclick: () => location.reload() }, 'Reload'));
+    $('#runtime-label').textContent = 'The engine didn\'t start';
+    setEngineStatus(`The engine failed to start: ${reason}`, 'failed');
     document.body.dataset.error = error.message;
     throw error;
   }

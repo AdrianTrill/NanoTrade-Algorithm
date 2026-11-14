@@ -97,6 +97,66 @@ const nanotrade::SweepResult search = nanotrade::run_sweep(bars, cache, crossove
 ```
 
 
+
+## What it finds
+
+[`tools/study.py`](tools/study.py) runs three experiments through the JSON API and writes the tables below, and [`docs/study.json`](docs/study.json) with every number behind them. CI runs it again on every push and fails if a single number would change. Every backtest is long only, over each stock's whole history, and pays 1 basis point of commission and 2 of slippage on every fill.
+
+**Against buying and holding.** Each built-in strategy with its default parameters, on each of the seven stocks; medians over the seven:
+
+<!-- study:strategies -->
+| Strategy | Sharpe ratio | Annual return | Worst drawdown | Time in the market | Sharpe ratio above holding's | Shallower drawdown |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| SMA crossover | 0.35 | 6.2% | 77% | 56% | 3 of 7 | 6 of 7 |
+| EMA crossover | 0.50 | 10.2% | 63% | 57% | 4 of 7 | 7 of 7 |
+| MACD | 0.36 | 5.7% | 73% | 50% | 0 of 7 | 6 of 7 |
+| Time-series momentum | 0.43 | 6.3% | 69% | 60% | 4 of 7 | 4 of 7 |
+| Donchian breakout | 0.39 | 6.2% | 65% | 39% | 1 of 7 | 7 of 7 |
+| RSI reversion | 0.28 | 3.6% | 78% | 39% | 1 of 7 | 7 of 7 |
+| Bollinger reversion | 0.27 | 3.5% | 63% | 24% | 0 of 7 | 7 of 7 |
+| RSI(2) pullback | 0.39 | 3.5% | 39% | 11% | 2 of 7 | 7 of 7 |
+| **Buy and hold** | **0.49** | **11.3%** | **86%** | **100%** | | |
+<!-- /study:strategies -->
+
+Every strategy spends much of its time out of the market, which is where most of its smaller drawdowns come from, and most earn a lower Sharpe ratio than simply holding the stock. The stocks flatter buying and holding, too: they were chosen knowing they would become large, lasting companies.
+
+**What a search finds.** The SMA crossover has two windows. Searching 300 pairs of them (fast 10 to 200 days, slow 20 to 400, fast below slow) on each stock, and on 20 random markets of 23 years that have nothing to find:
+
+<!-- study:search -->
+| Market | Best pair, fast / slow | Its Sharpe ratio | Best by luck alone | Deflated Sharpe ratio | Probability of overfitting | Lost out of sample |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| AAPL | 10 / 40 | 0.73 | 0.19 | 99.9% | 35% | 3% |
+| BA | 20 / 280 | 0.71 | 0.14 | > 99.9% | 61% | 0% |
+| CAT | 70 / 100 | 0.49 | 0.22 | 97.5% | 23% | 1% |
+| DELL | 150 / 280 | 0.73 | 0.21 | 99.5% | 85% | 4% |
+| EBAY | 10 / 20 | 0.68 | 0.26 | 95.7% | 45% | 12% |
+| F | 200 / 360 | 0.53 | 0.27 | 94.6% | 35% | 5% |
+| GE | 20 / 240 | 0.53 | 0.13 | 99.8% | 79% | 0% |
+| *20 random markets, median* | | 0.16 | 0.29 | 33.4% | 50% | 67% |
+
+The winner's deflated Sharpe ratio reaches 95% on 6 of the 7 stocks and on 0 of the 20 random markets.
+<!-- /study:search -->
+
+A search always finds a winner, on random markets too. The deflated Sharpe ratio tells them apart, but it tests against a Sharpe ratio of zero, and a long position in a stock that rose for decades clears that. Whether the *choice* of windows means anything is what the probability of backtest overfitting measures, and on the stocks it is far from zero: the pair that was best on one half of the history often ranks in the bottom half of the other.
+
+**Walk-forward.** The same search on four years at a time, each winner traded on the year after:
+
+<!-- study:walk_forward -->
+| Stock | Years traded | Windows | Sharpe ratio in sample | Sharpe ratio out of sample | Buy and hold, same years | Efficiency |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| AAPL | 29 | 30 | 1.03 | 0.47 | 0.62 | 0.67 |
+| BA | 48 | 48 | 1.03 | 0.45 | 0.46 | 0.48 |
+| CAT | 48 | 48 | 0.82 | 0.32 | 0.39 | 0.41 |
+| DELL | 21 | 22 | 1.00 | 0.58 | 0.60 | 0.71 |
+| EBAY | 11 | 12 | 0.87 | 0.49 | 0.51 | 0.49 |
+| F | 38 | 38 | 0.86 | 0.37 | 0.32 | 0.49 |
+| GE | 48 | 48 | 0.85 | 0.41 | 0.42 | 0.54 |
+
+Medians: 0.87 in sample, 0.45 out of sample, and 0.46 for buying and holding; the walk-forward beat holding's Sharpe ratio on 1 of the 7 stocks.
+<!-- /study:walk_forward -->
+
+The windows that looked best on the past kept about half their Sharpe ratio on the year after, which leaves the crossover close to holding the stock. That is the gap a backtest optimized on its own history hides, and the gap the lab is built to show.
+
 ## Command line
 
 ```bash
@@ -178,8 +238,9 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ./build/nanotrade run --data AAPL --strategy rsi2_pullback
+python3 tools/study.py build/nanotrade --check     # the study above, run again
 ```
 
-The tests work small cases by hand, checking every share, price, commission, and P&L of fills, stops, trailing stops, shorts, reversals, and sizing. They check each built-in strategy bar by bar against an independent version of it, on three stocks and two random markets; the indicators and the metrics against their definitions; and the CSV loader on each source's format and every bundled file. The research tests check that a sweep's cells equal separate backtests and come out bit for bit the same on one thread or eight, that the probability of overfitting is near one half on pure noise and small for a real edge among noise, that walk-forward windows tile the range and choose without peeking, and that resampling and random markets repeat exactly for a seed. The API's tests check every command and every way a request can be wrong, the server's tests check its parsing, limits, and refusals with real sockets, and the golden responses and the command line run end to end. On all seven stocks, under random signals and every combination of sizing, shorting, costs, and stops, four properties hold: the books balance (the final equity is the initial capital plus every trade's P&L), nothing looks ahead (rewriting every price after a bar changes nothing up to it), a run repeats exactly, and no fill takes a position past the leverage cap. CI runs them with GCC, Clang, Apple Clang, and MSVC, with warnings as errors, and under AddressSanitizer, UndefinedBehaviorSanitizer, and ThreadSanitizer.
+The tests work small cases by hand, checking every share, price, commission, and P&L of fills, stops, trailing stops, shorts, reversals, and sizing. They check each built-in strategy bar by bar against an independent version of it, on three stocks and two random markets; the indicators and the metrics against their definitions; and the CSV loader on each source's format and every bundled file. The research tests check that a sweep's cells equal separate backtests and come out bit for bit the same on one thread or eight, that the probability of overfitting is near one half on pure noise and small for a real edge among noise, that walk-forward windows tile the range and choose without peeking, and that resampling and random markets repeat exactly for a seed. The API's tests check every command and every way a request can be wrong, the server's tests check its parsing, limits, and refusals with real sockets, and the golden responses and the command line run end to end. On all seven stocks, under random signals and every combination of sizing, shorting, costs, and stops, four properties hold: the books balance (the final equity is the initial capital plus every trade's P&L), nothing looks ahead (rewriting every price after a bar changes nothing up to it), a run repeats exactly, and no fill takes a position past the leverage cap. CI runs them with GCC, Clang, Apple Clang, and MSVC, with warnings as errors, and under AddressSanitizer, UndefinedBehaviorSanitizer, and ThreadSanitizer. It also runs the study again, and fails if any number in it would change.
 
 Released under the [MIT License](LICENSE).

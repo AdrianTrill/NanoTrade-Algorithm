@@ -132,3 +132,26 @@ jobs:
       # Downloads the bars again at the pinned commit; every file must match data/manifest.json byte for byte.
       - name: Prepare the data again and compare
         run: python tools/prepare_data.py --check
+
+  study:
+    name: Study / the README's tables reproduce
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
+
+      - name: Build the command line
+        run: cmake --build build --target nanotrade --parallel
+
+      # Every number in the README's study, and in docs/study.json, must come out of a fresh run exactly.
+      - name: Run the study again and compare
+        run: python tools/study.py build/nanotrade --check
